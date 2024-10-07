@@ -1311,7 +1311,7 @@ class SwitchMCase:
                                                   'Service_duration_per_car_model',
                                                   'Kilometers_driven_KMs_diff_by_car_model',
                                                   'Car_model_distribution_by_service_location'
-                                                 ], key=6)
+                                                 ], key=7)
         class SwitchCMCase:
             def case_Most_frequently_serviced_car_models(self):
                 #### Most frequently serviced car models
@@ -1400,6 +1400,81 @@ class SwitchMCase:
         return 'Car_Model_Insights'
     ################################################################################################## Fuel Insights
     def case_Fuel_Insights(self):
+        df = load_data('maintenance_cleaned_extended.xlsx')
+        st.header('Fuel Insights')
+        selectFuelInsight = st.sidebar.selectbox('Select Fuel Insight :',
+                                                 ['Relationship_between_fuel_levels_fuel_in_vs_fuel_out_and_repair_costs',
+                                                  'Relationship_between_fuel_levels_and_service_duration',
+                                                  'Fuel_consumption_differences_across_car_models',
+                                                  'Fuel_consumption_vs_kilometers_driven_during_service',
+                                                  'Fuel_usage_distribution_across_different_damage_types'
+                                                 ], key=8)
+        class SwitchFLCase:
+            def case_Relationship_between_fuel_levels_fuel_in_vs_fuel_out_and_repair_costs(self):
+                #### Relationship between fuel levels (fuel in vs. fuel out) and repair costs
+                # Create a long-form DataFrame for comparison of fuel in and fuel out
+                df_long = df.melt(id_vars='cost', value_vars=['Fuel in', 'Fuel out'],
+                                  var_name='Fuel Type', value_name='Fuel Level')
+                # Scatter plot: fuel in/fuel out vs. repair cost
+                fig = px.scatter(df_long, 
+                                 x='Fuel Level',    # Fuel levels on X-axis (combined fuel in and out)
+                                 y='cost',   # Repair cost on Y-axis
+                                 color='Fuel Type', # Distinguish between fuel in and out
+                                 title='Relationship between fuel levels (fuel in vs. fuel out) and repair costs',
+                                 labels={'Fuel Level': 'Fuel Levels (In/Out)', 'cost': 'Repair Cost'}
+                                )
+                fig.update_layout(title_x=0.5)
+                st.plotly_chart(fig,theme=None, use_container_width=True)
+                return 'Relationship_between_fuel_levels_fuel_in_vs_fuel_out_and_repair_costs'
+            def case_Relationship_between_fuel_levels_and_service_duration(self):
+                #### Relationship between fuel levels and service duration
+                # Create a long-form DataFrame for comparison of fuel in and fuel out
+                df_long = df.melt(id_vars='service_duration', value_vars=['Fuel in', 'Fuel out'],
+                                  var_name='Fuel Type', value_name='Fuel Level')
+                # Scatter plot: fuel in/fuel out vs. service duration
+                fig = px.scatter(df_long, 
+                                 x='Fuel Level',    # Fuel levels on X-axis (combined fuel in and out)
+                                 y='service_duration',   # Service duration on Y-axis
+                                 color='Fuel Type', # Distinguish between fuel in and out
+                                 title='Relationship between fuel levels and service duration',
+                                 labels={'Fuel Level': 'Fuel Levels (In/Out)', 'service_duration': 'Service Duration'}
+                                )
+                fig.update_layout(title_x=0.5)
+                st.plotly_chart(fig,theme=None, use_container_width=True)
+                return 'Relationship_between_fuel_levels_and_service_duration'
+            def case_Fuel_consumption_differences_across_car_models(self):
+                #### Fuel consumption differences across car models
+                myBoxPlot(data=df,x='car',y='Fuel Diff',color=None,title='Fuel consumption differences across car models')
+                return 'Fuel_consumption_differences_across_car_models'
+            def case_Fuel_consumption_vs_kilometers_driven_during_service(self):
+                #### Fuel consumption vs kilometers driven during service
+                # Scatter plot: Fuel Consumption vs. kilometers driven during service
+                fig = px.scatter(df, 
+                                 x='KMs Diff',      # Kilometers Difference
+                                 y='Fuel Diff',          # Fuel Difference
+                                 color='service_duration', # Distinguish as per service duration
+                                 title='Fuel consumption vs kilometers driven during service',
+                                 labels={'KMs Diff': 'Kilometers Difference', 'Fuel Diff': 'Fuel Difference'}
+                                )
+                fig.update_layout(title_x=0.5)
+                st.plotly_chart(fig,theme=None, use_container_width=True)
+                return 'Fuel_consumption_vs_kilometers_driven_during_service'
+            def case_Fuel_usage_distribution_across_different_damage_types(self):
+                #### Fuel usage distribution across different damage types
+                myBoxPlot(data=df,x='damage type',y='Fuel Diff',color=None,title='Fuel usage distribution across different damage types')
+                return 'Fuel_usage_distribution_across_different_damage_types'
+            
+            def default_case(self):
+                return "Default class method executed"
+            def FL_switch(self, value):
+                method_name = f'case_{value}'
+                method = getattr(self, method_name, self.default_case)
+                return method()    
+        # Usage
+        FL_switcher = SwitchFLCase()
+        FL_result = FL_switcher.FL_switch(selectFuelInsight)
+        st.write('Fuel Insight: ',FL_result)
+        
         return 'Fuel_Insights'
     ################################################################################################## Time Based Insights
     def case_Time_Based_Insights(self):
