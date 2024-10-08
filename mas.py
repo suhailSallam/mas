@@ -258,29 +258,27 @@ def myPlot(data,plotType,title):
     #fig.show()
     st.plotly_chart(fig,theme=None, use_container_width=True)
 
-def myPlot1(data,xs,ys,clr,plotType,title, sort_by=None, ascending=True):
+def myPlot1(data, xs, ys, clr, plotType, title, sort_by=None, ascending=True):
     if sort_by is not None:
         data_sorted = data.sort_values(by=sort_by, ascending=ascending)
     else:
         data_sorted = data
-    xt=str(xs)
-    yt=str(ys)
-    xs = data_sorted[xs].astype(str)  
-    ys = data_sorted[ys]              
-    clr = data_sorted[clr].astype(str)
+    xt = str(xs)
+    yt = str(ys)
+    xs = data_sorted[xs]
+    ys = data_sorted[ys]
+    clr = data_sorted[clr].astype(str) if clr else None
     if plotType == 'bar':
-        fig = px.bar(x = xs, y = ys,color=clr,title=title+' Analysis')
+        fig = px.bar(x=xs, y=ys, color=clr, title=title + ' Analysis')
     elif plotType == 'scatter':
-        fig = px.scatter(x = xs, y = ys,color=clr,title=title+' Analysis')
+        fig = px.scatter(x=xs, y=ys, color=clr, title=title + ' Analysis')
     elif plotType == 'line':
-        fig = px.line(x = xs, y = ys,color=clr,title=title+' Analysis')
+        fig = px.line(x=xs, y=ys, color=clr, title=title + ' Analysis')
     fig.update_layout(title_x=0.5)
-    fig.update_layout(
-        xaxis_title=xt,
-        yaxis_title=yt
-)
+    fig.update_layout(xaxis_title=xt, yaxis_title=yt)
     #fig.show()
     st.plotly_chart(fig,theme=None, use_container_width=True)
+    
 def myPlot2(data, plotType, title):
     xs = data.index.astype(str)  # Index (x-axis)
     ys = data.values  # Values (y-axis)
@@ -1478,6 +1476,167 @@ class SwitchMCase:
         return 'Fuel_Insights'
     ################################################################################################## Time Based Insights
     def case_Time_Based_Insights(self):
+        df = load_data('maintenance_cleaned_extended.xlsx')
+        st.header('Time Based Insights')
+        selectTimeInsight = st.sidebar.selectbox('Select Time Based Insight :',
+                                                 ['Trends_in_the_number_of_repairs_over_time',
+                                                  'Average_repair_costs_by_year_month_or_day',
+                                                  'Seasonal_trends_in_repair_costs_and_damage_types',
+                                                  'Changes_in_service_duration_over_time',
+                                                  'Cost_categories_that_are_more_common_in_specific_months',
+                                                  'Trends_in_fuel_consumption_over_time'
+                                                 ], key=9)
+        class SwitchTICase:
+            def case_Trends_in_the_number_of_repairs_over_time(self):
+                #### Trends in the number of repairs over time
+                date_count = df.groupby(['date in']).size().reset_index(name='Count').sort_values(by='date in')
+                myPlot1(date_count,'date in','Count',None,'line','Trends in the number of repairs over time', sort_by=None, ascending=True)
+                print("The line chart above shows the trends in the number of repairs from January 2015 to early 2016. Here's an analysis of the ")
+                print("visualized data:")
+                print("      1.High Variability:")
+                print("        There is a high degree of fluctuation in the number of repairs over the observed time frame. The number of repairs ")
+                print("        spikes significantly at certain points, especially around May 2015 and November 2015, where you see sharp peaks.")
+                print("      2.Distinct Spikes:")
+                print("        The spike around May 2015 shows over 50 repairs in that period, which is much higher compared to the rest of the")
+                print("         timeline.There is another notable peak around December 2015 with around 30 repairs.")
+                print("      3.General Downward Trend at the Start:")
+                print("        At the beginning of the year (January 2015), the number of repairs is initially quite high but then sharply drops")
+                print("         and fluctuates at a lower level through the remainder of the year, punctuated by the occasional spikes.")
+                print("      4.Seasonality or Cyclic Patterns:")
+                print("        While the data does not show a clear repeating seasonal pattern, the large spikes in May and November could suggest")
+                print("        some underlying factors driving repairs during these months, such as weather changes or specific events.")
+                print("      5.Consistent Low Activity:")
+                print("        Between the peaks, the number of repairs seems to stabilize at a relatively low range (between 0 and 10 repairs)")
+                print("        for most of the time.")
+
+                print("Suggestions:")
+                print("      1.Identifying the Causes of the Peaks:")
+                print("        it might be useful to investigate the root causes of the repair spikes in May 2015 and December 2015.")
+                print("        Are there specific incidents or external factors during those months that led to increased repairs?")
+                print("      2.Breakdown by Categories:")
+                print("        Repair type:")
+                print("          here is a break down to the number of repairs by repair type to identify whether particular types of repairs are")
+                print("          responsible for the spikes.")
+                print("        Location:")
+                print("          here is a break down to the number of repairs by location to identify whether particular types of repairs are")
+                print("      3.Moving Averages:")
+                print("        this chart shows applying a moving average to this data, that could help smooth out the fluctuations and reveal")
+                print("        longer-term trends.")
+                # Group by damage type and date to get the count of repairs per type over time
+                category_count = df.groupby(['date in', 'damage type']).size().reset_index(name='Count')
+                # Create a line chart showing the trends in repairs broken down by repair type
+                myPlot1(category_count,'date in','Count','damage type','line','Trends in the number of repairs over time by Damage Type', sort_by=None, ascending=True)
+                # Group by location and date to get the count of repairs per type over time
+                category_count = df.groupby(['date in', 'location']).size().reset_index(name='Count')
+                # Create a line chart showing the trends in repairs broken down by repair type
+                myPlot1(category_count,'date in','Count','location','line','Trends in the number of repairs over time by location', sort_by=None, ascending=True)
+                # First, group by date to get the number of repairs per date
+                date_count = df.groupby(['date in']).size().reset_index(name='Count')
+                # Calculate a 7-day moving average for the number of repairs
+                date_count['Moving_Avg'] = date_count['Count'].rolling(window=7).mean()
+                # Create a line chart showing the original data and the moving average
+                fig = px.line(date_count, 
+                              x='date in', 
+                              y='Count', 
+                              title='Trends in the number of repairs over time with Moving Average')
+                # Add the moving average as another line
+                fig.add_scatter(x=date_count['date in'], 
+                                y=date_count['Moving_Avg'], 
+                                mode='lines', 
+                                name='7-day Moving Average', 
+                                line=dict(color='orange'))
+                # Adjust layout
+                fig.update_layout(title_x=0.5, xaxis_title='Date', yaxis_title='Number of Repairs')
+                # Show the plot
+                st.plotly_chart(fig,theme=None, use_container_width=True)
+                return 'Trends_in_the_number_of_repairs_over_time'
+            def case_Average_repair_costs_by_year_month_or_day(self):
+                #### Average repair costs by year, month, or day
+                date_average = df.groupby(['date in'])['cost'].mean().reset_index().sort_values(by='date in')
+                myPlot1(date_average,'date in','cost',None,'line','Trends in average repair cost over time', sort_by=None, ascending=True)
+
+                # Group by year
+                df['year']  = df['date in'].dt.year
+                date_average = df.groupby('year')['cost'].mean().reset_index()
+                date_average['year']=date_average['year'].astype(str)
+                myPlot1(date_average, 'year', 'cost', None, 'line', 'Trends in average repair cost over time', sort_by=None, ascending=True)
+
+                # Concatenate year and month into a new 'year_month' column
+                # Extract the year and month, ensuring the month is two digits
+                df['year_month'] = df['year'].astype(str) + '_' + df['date in'].dt.month.astype(str).str.zfill(2)
+                # Group by year_month
+                date_average = df.groupby('year_month')['cost'].mean().reset_index().sort_values(by='year_month')
+                myPlot1(date_average, 'year_month', 'cost', None, 'line', 'Trends in average repair cost over time', sort_by=None, ascending=True)
+                return 'Average_repair_costs_by_year_month_or_day'
+            def case_Seasonal_trends_in_repair_costs_and_damage_types(self):
+                #### Seasonal trends in repair costs and damage types
+                #density_heatmap
+                fig = px.density_heatmap(df, x='date in', y='damage type', z='cost', 
+                                         title="Seasonal trends in repair costs and damage types",
+                                         labels={'cost': 'Repair Cost', 'date in': 'Date', 'damage type': 'Damage Type'})
+                fig.update_layout(title_x=0.5)
+                st.plotly_chart(fig,theme=None, use_container_width=True)
+                return 'Seasonal_trends_in_repair_costs_and_damage_types'
+            def case_Changes_in_service_duration_over_time(self):
+                #### Changes in service duration over time
+                date_service_duration = df.groupby('date in')['service_duration'].sum().reset_index().sort_values(by='date in')
+                myPlot1(date_service_duration, 'date in', 'service_duration', None, 'line', 'Changes in service duration over time - DAILY', sort_by=None, ascending=True)
+
+                df['year_month'] = df['date in'].dt.year.astype(str) + '_' + df['date in'].dt.month.astype(str).str.zfill(2)
+                # Group by year_month
+                date_service_duration = df.groupby('year_month')['service_duration'].sum().reset_index().sort_values(by='year_month')
+                myPlot1(date_service_duration, 'year_month', 'service_duration', None, 'line', 'Changes in service duration over time - MONTHLY', sort_by=None, ascending=True)
+                return 'Changes_in_service_duration_over_time'
+            def case_Cost_categories_that_are_more_common_in_specific_months(self):
+                #### Cost categories that are more common in specific months
+                fig = px.bar(df,
+                             x='date in', 
+                             y='cost_category', 
+                             color='cost_category',
+                             barmode='stack',  # Stacked bar chart
+                             title="Cost categories that are more common in Daily Basis",
+                             labels={'date in': 'Date', 'cost_category': 'Cost Category'}
+                            )
+                fig.update_layout(title_x=0.5)
+                st.plotly_chart(fig,theme=None, use_container_width=True)
+
+                df['year_month'] = df['date in'].dt.year.astype(str) + '_' + df['date in'].dt.month.astype(str).str.zfill(2)
+                # Group by year_month
+                #date_cost_category = df.groupby('year_month')['cost_category'].size().reset_index().sort_values(by='year_month')
+                #myPlot1(df.sort_values(by='year_month'), 'year_month', 'cost_category', None, 'bar', 'Cost categories that are more common in specific months', sort_by=None, ascending=True)
+                fig = px.bar(df,
+                             x='year_month', 
+                             y='cost_category', 
+                             color='cost_category',
+                             barmode='stack',  # Stacked bar chart
+                             title="Cost categories that are more common in years - months",
+                             labels={'year_month': 'Date', 'cost_category': 'Cost Category'}
+                            )
+                fig.update_layout(title_x=0.5)
+                st.plotly_chart(fig,theme=None, use_container_width=True)
+                return 'Cost_categories_that_are_more_common_in_specific_months'
+            def case_Trends_in_fuel_consumption_over_time(self):
+                #### Trends in fuel consumption over time
+                df['year_month'] = df['date in'].dt.year.astype(str) + '_' + df['date in'].dt.month.astype(str).str.zfill(2)
+                # Group by year_month
+                date_Fuel_Diff = df.groupby('year_month')['Fuel Diff'].sum().reset_index().sort_values(by='year_month')
+                myPlot1(date_Fuel_Diff, 'year_month', 'Fuel Diff', None, 'line', 'Trends in fuel consumption over time', sort_by=None, ascending=True)
+
+                date_Fuel_Diff = df.groupby(['year_month', 'damage type']).sum().reset_index().sort_values(by='year_month')
+                myPlot1(date_Fuel_Diff, 'year_month', 'Fuel Diff', 'damage type', 'line', 'Trends in fuel consumption over time', sort_by=None, ascending=True)
+                return 'Trends_in_fuel_consumption_over_time'
+            
+            def default_case(self):
+                return "Default class method executed"
+            def TI_switch(self, value):
+                method_name = f'case_{value}'
+                method = getattr(self, method_name, self.default_case)
+                return method()    
+        # Usage
+        TI_switcher = SwitchTICase()
+        TI_result = TI_switcher.TI_switch(selectTimeInsight)
+        st.write('Time Based Insight: ',TI_result)
+        
         return 'Time_Based_Insights'
     ################################################################################################## Location Based Insights
     def case_Lcation_Based_Insights(self):
