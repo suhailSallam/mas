@@ -12,6 +12,9 @@ import PyQt5 as qt
 from IPython.display import display, Markdown
 import streamlit as st
 import streamlit.components.v1 as comp
+from wordcloud import WordCloud
+import arabic_reshaper
+from bidi.algorithm import get_display
 
 
 # Setting page layout ( This command should be after importing libraries )
@@ -1856,6 +1859,107 @@ class SwitchMCase:
         return 'Cost_Category_Insights'
     ################################################################################################## Miscellaneous Insights
     def case_Miscellaneous_Insights(self):
+        df = load_data('maintenance_cleaned_extended.xlsx')
+        st.header('Miscellaneous Insights')
+        selectMiscellaneousInsight = st.sidebar.selectbox('Select Miscellaneous Insight :',
+                                                 ['Relationship_between_kilometers_driven_KMs_in_and_KMs_out_and_damage_types',
+                                                  'Impact_of_corporate_on_cost',
+                                                  'Impact_of_corporate_on_service_duration',
+                                                  'Impact_of_delivery_method_on_cost',
+                                                  'Impact_of_delivery_method_on_service_duration',
+                                                  'Correlation_between_notes_and_high_cost_repairs'
+                                                 ], key=13)
+        class SwitchMSCase:
+            def case_Relationship_between_kilometers_driven_KMs_in_and_KMs_out_and_damage_types(self):
+                #### Relationship between kilometers driven (KMs in and KMs out) and damage types
+                Maximum_row = df.loc[df['KMs Diff'].idxmax()]
+                r11,r12,r13,r14 = st.columns(4)
+                r11.metric('The Damage type that has maximum Kilometers difference is :',Maximum_row['damage type'])
+                r12.metric('The maximum Kilometers difference is :',Maximum_row['KMs Diff'])
+                myBoxPlot(data=df,x='damage type',y='KMs Diff',color='damage type',title='Relationship between kilometers driven (KMs in and KMs out) and damage types')
+                return 'Relationship_between_kilometers_driven_KMs_in_and_KMs_out_and_damage_types'
+            def case_Impact_of_corporate_on_cost(self):
+                ##### Impact of corporate on cost
+                corporate_cost = df.groupby(['corporate'])['cost'].sum().reset_index(name='CostSum').sort_values(by='CostSum')
+                Maximum_row = corporate_cost.loc[corporate_cost['CostSum'].idxmax()]
+                r11,r12,r13,r14 = st.columns(4)                
+                r11.metric('The corporate that has maximum Total cost is :',Maximum_row['corporate'])
+                r12.metric('The maximum total cost is :',Maximum_row['CostSum'])
+                myPlot1(corporate_cost,'corporate','CostSum','corporate','bar','Impact of corporate on cost', sort_by=None, ascending=True)
+                return 'Impact_of_corporate_on_cost'
+            def case_Impact_of_corporate_on_service_duration(self):
+                ##### Impact of corporate on service duration
+                corporate_service_duration = df.groupby(['corporate'])['service_duration'].size().reset_index(name='Count').sort_values(by='Count')
+                Maximum_row = corporate_service_duration.loc[corporate_service_duration['Count'].idxmax()]
+                r11,r12,r13,r14 = st.columns(4)
+                r11.metric('The corporate that has maximum service duration is :',Maximum_row['corporate'])
+                r12.metric('The maximum service duration is :',Maximum_row['Count'])
+                myPlot1(corporate_service_duration,'corporate','Count','corporate','bar','Impact of corporate on service duration', sort_by=None, ascending=True)
+                return 'Impact_of_corporate_on_service_duration'
+            def case_Impact_of_delivery_method_on_cost(self):
+                ##### Impact of delivery method on cost
+                delivered_by_cost = df.groupby(['delivered by'])['cost'].sum().reset_index(name='CostSum').sort_values(by='CostSum')
+                Maximum_row = delivered_by_cost.loc[delivered_by_cost['CostSum'].idxmax()]
+                r11,r12,r13,r14 = st.columns(4)                
+                r11.metric('The delivery method that has maximum Total cost is :',Maximum_row['delivered by'])
+                r12.metric('The maximum total cost is :',Maximum_row['CostSum'])
+                myPlot1(delivered_by_cost,'delivered by','CostSum','delivered by','bar','Impact of delivery method on cost', sort_by=None, ascending=True)
+                return 'Impact_of_delivery_method_on_cost'
+            def case_Impact_of_delivery_method_on_service_duration(self):
+                ##### Impact of delivery method on service duration
+                delivered_by_service_duration = df.groupby(['delivered by'])['service_duration'].size().reset_index(name='Count').sort_values(by='Count')
+                Maximum_row = delivered_by_service_duration.loc[delivered_by_service_duration['Count'].idxmax()]
+                r11,r12,r13,r14 = st.columns(4)                
+                r11.metric('The delivered method that has maximum service duration is :',Maximum_row['delivered by'])
+                r12.metric('The maximum service duration is :',Maximum_row['Count'])
+                myPlot1(delivered_by_service_duration,'delivered by','Count','delivered by','bar','Impact of delivered method on service duration', sort_by=None, ascending=True)
+                return 'Impact_of_delivery_method_on_service_duration'
+            def case_Correlation_between_notes_and_high_cost_repairs(self):
+                #### Correlation between notes and high_cost repairs
+                r11,r12,r13,r14 = st.columns(4)
+                h = 'here'
+                r11.metric('I am',h)
+                # Load the Arabic-supported font (replace with the correct path to your font)
+                font_path = 'majalla.ttf'  # Ensure this is in the correct folder or provide a full path
+
+                # Join all text into one string
+                text = ' '.join(df['notes'].astype(str))
+
+                # Reshape the Arabic text so letters are connected
+                reshaped_text = arabic_reshaper.reshape(text)
+
+                # Apply bidi to ensure proper RTL display
+                bidi_text = get_display(reshaped_text)
+
+                # Generate the word cloud with the reshaped, bidi-corrected text
+                wordcloud = WordCloud(font_path=font_path, width=1000, height=800).generate(bidi_text)
+
+                # Create a new figure explicitly
+                #fig, ax = plt.subplots(figsize=(10, 8))  # Ensure we are using subplots to handle axes properly
+
+                # Plot the word cloud using matplotlib
+                plt.imshow(wordcloud, interpolation='bilinear')
+                plt.axis('off')
+
+                # Display the plot in Streamlit
+                st.pyplot(plt)
+
+                # Close the figure to prevent memory issues
+                #plt.close(fig)
+
+
+                return 'Correlation_between_notes_and_high_cost_repairs'
+            
+            def default_case(self):
+                return "Default class method executed"
+            def MS_switch(self, value):
+                method_name = f'case_{value}'
+                method = getattr(self, method_name, self.default_case)
+                return method()    
+        # Usage
+        MS_switcher = SwitchMSCase()
+        MS_result = MS_switcher.MS_switch(selectMiscellaneousInsight)
+        st.write('Miscellaneous Insight: ',MS_result)
         return 'Miscellaneous_Insights'
 
     # Needed to switch case
