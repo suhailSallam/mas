@@ -222,25 +222,25 @@ def DataPreProcessing(data):
     ## Categorization
     ### Cost Category
     cost_dict = {
-        range(1,50,1):'1:50',
-        range(50,100,1):'50:100',
-        range(100,150,1):'100:150',
-        range(150,200,1):'150:200',
-        range(200,300,1):'200:300',
-        range(300,400,1):'300:400',
-        range(400,500,1):'400:500',
-        range(500,600,1):'500:600',
-        range(600,700,1):'600:700',
-        range(700,800,1):'700:800',
-        range(800,900,1):'800:900',
-        range(900,1000,1):'900:1000',
+        range(1,50,1)     :'0001:0050',
+        range(50,100,1)   :'0050:0100',
+        range(100,150,1)  :'0100:0150',
+        range(150,200,1)  :'0150:0200',
+        range(200,300,1)  :'0200:0300',
+        range(300,400,1)  :'0300:0400',
+        range(400,500,1)  :'0400:0500',
+        range(500,600,1)  :'0500:0600',
+        range(600,700,1)  :'0600:0700',
+        range(700,800,1)  :'0700:0800',
+        range(800,900,1)  :'0800:0900',
+        range(900,1000,1) :'0900:1000',
         range(1000,1500,1):'1000:1500',
         range(1500,2000,1):'1500:2000',
         range(2000,3000,1):'2000:3000'
     }
     df['cost_category'] = df['cost'].replace(cost_dict)
     # Save DataSet post processing to new Excel file
-    df.to_excel('maintenance_cleaned_extended.xlsx')
+    #df.to_excel('maintenance_cleaned_extended.xlsx')
 
 # Visualization Functions
 ## Bar, Scatter, Line charts
@@ -1640,12 +1640,219 @@ class SwitchMCase:
         return 'Time_Based_Insights'
     ################################################################################################## Location Based Insights
     def case_Lcation_Based_Insights(self):
+        df = load_data('maintenance_cleaned_extended.xlsx')
+        st.header('Location Based Insights')
+        selectLocationInsight = st.sidebar.selectbox('Select Location Based Insight :',
+                                                 ['Average_cost_of_repairs_by_service_location',
+                                                  'Total_number_of_repairs_completed_at_each_location',
+                                                  'Service_duration_across_different_locations',
+                                                  'Most_common_damage_types_by_location',
+                                                  'Comparison_of_car_models_serviced_at_different_locations'
+                                                 ], key=10)
+        class SwitchLCCase:
+            def case_Average_cost_of_repairs_by_service_location(self):
+                #### Average cost of repairs by service location
+                Avg_cost_location = df.groupby(['location'])['cost'].mean().reset_index(name='Average_location_Cost').sort_values(by='Average_location_Cost')
+                myPlot1(Avg_cost_location,'location','Average_location_Cost',None,'bar','Average cost of repairs by service location', sort_by=None, ascending=True)
+                return 'Average_cost_of_repairs_by_service_location'
+            def case_Total_number_of_repairs_completed_at_each_location(self):
+                #### Total number of repairs completed at each location
+                Location_frequency = df.groupby(['location']).size().reset_index(name='Location Frequency').sort_values(by='Location Frequency')
+                myPlot1(Location_frequency,'location','Location Frequency',None,'bar','Total number of repairs completed at each location', sort_by=None, ascending=True)
+                return 'Total_number_of_repairs_completed_at_each_location'
+            def case_Service_duration_across_different_locations(self):
+                #### Service duration across different locations
+                Avg_service_duraton_location = df.groupby(['location'])['service_duration'].mean().round(2).reset_index(name='Average Service Duration').sort_values(by='Average Service Duration')
+                myPlot1(Avg_service_duraton_location,'location','Average Service Duration',None,'bar','Average Service duration across different locations', sort_by=None, ascending=True)
+                return 'Service_duration_across_different_locations'
+            def case_Most_common_damage_types_by_location(self):
+                #### Most common damage types by location
+                damage_Type_location = df.groupby(['damage type','location'])['location'].count().reset_index(name='Frequency')
+                # Plot stacked bar chart
+                fig = px.bar(damage_Type_location,
+                             x='location', 
+                             y='Frequency', 
+                             color='damage type',
+                             barmode='stack',
+                             title="Most common damage types by location",
+                             labels={'location': 'Service Location', 'Frequency': 'Damage Frequency', 'damage type': 'Damage Type'}
+                            )
+                fig.update_layout(title_x=0.5)
+                st.plotly_chart(fig,theme=None, use_container_width=True)
+                # Plot grouped bar chart
+                fig = px.bar(damage_Type_location,
+                             x='location', 
+                             y='Frequency', 
+                             color='damage type',
+                             barmode='group',
+                             title="Most common damage types by location",
+                             labels={'location': 'Service Location', 'Frequency': 'Damage Frequency', 'damage type': 'Damage Type'}
+                            )
+                fig.update_layout(title_x=0.5)
+                st.plotly_chart(fig,theme=None, use_container_width=True)
+                return 'Most_common_damage_types_by_location'
+            def case_Comparison_of_car_models_serviced_at_different_locations(self):
+                #### Comparison of car models serviced at different locations
+                car_location = df.groupby(['location','car']).size().reset_index(name='Car Model').sort_values(by='Car Model')
+                fig = px.bar(car_location,
+                             x='location', 
+                             y='Car Model', 
+                             color='car',
+                             barmode='stack',
+                             title="Comparison of car models serviced at different locations",
+                             labels={'location': 'Service Location', 'car': 'Car Model', 'Car Model': 'Count of Car Model serviced'}
+                            )
+                fig.update_layout(title_x=0.5)
+                st.plotly_chart(fig,theme=None, use_container_width=True)
+                return 'Comparison_of_car_models_serviced_at_different_locations'
+            
+            def default_case(self):
+                return "Default class method executed"
+            def LC_switch(self, value):
+                method_name = f'case_{value}'
+                method = getattr(self, method_name, self.default_case)
+                return method()    
+        # Usage
+        LC_switcher = SwitchLCCase()
+        LC_result = LC_switcher.LC_switch(selectLocationInsight)
+        st.write('Location Based Insight: ',LC_result)
+        
         return 'Lcation_Based_Insights'
     ################################################################################################## Kilometers Insights
     def case_Kilometers_Insights(self):
+        df = load_data('maintenance_cleaned_extended.xlsx')
+        st.header('Kilometers Insights')
+        selectKilometersInsight = st.sidebar.selectbox('Select Kilometers Insight :',
+                                                 ['Relationship_between_kilometers_driven_KMs_diff_and_repair_costs',
+                                                  'Relationship_between_kilometers_driven_KMs_diff_and_repair_costs_per_damage_type',
+                                                  'Relationship_between_kilometers_driven_KMs_diff_and_repair_costs_per_service_location',
+                                                  'Relationship_between_kilometers_driven_KMs_diff_and_repair_costs_per_service_duration',
+                                                  'Correlation_between_kilometers_driven_and_service_duration',
+                                                  'Kilometers_driven_distribution_by_car_model',
+                                                  'Kilometers_driven_distribution_by_damage_type',
+                                                  'Kilometers_driven_by_service_location'
+                                                 ], key=11)
+        class SwitchKLCase:
+            def case_Relationship_between_kilometers_driven_KMs_diff_and_repair_costs(self):
+                #### Relationship between kilometers driven (KMs diff) and repair costs
+                myPlot1(df,'KMs Diff','cost',None,'scatter','Relationship between kilometers driven (KMs diff) and repair costs', sort_by=None, ascending=True)
+                return 'Relationship_between_kilometers_driven_KMs_diff_and_repair_costs'
+            def case_Relationship_between_kilometers_driven_KMs_diff_and_repair_costs_per_damage_type(self):
+                #### Relationship between kilometers driven (KMs diff) and repair costs per damage type
+                myPlot1(df,'KMs Diff','cost','damage type','scatter','Relationship between kilometers driven (KMs diff) and repair costs per damage type', sort_by=None, ascending=True)
+                return 'Relationship_between_kilometers_driven_KMs_diff_and_repair_costs_per_damage_type'
+            def case_Relationship_between_kilometers_driven_KMs_diff_and_repair_costs_per_service_location(self):
+                #### Relationship between kilometers driven (KMs diff) and repair costs per service location
+                myPlot1(df,'KMs Diff','cost','location','scatter','Relationship between kilometers driven (KMs diff) and repair costs per service location', sort_by=None, ascending=True)
+                return 'Relationship_between_kilometers_driven_KMs_diff_and_repair_costs_per_service_location'
+            def case_Relationship_between_kilometers_driven_KMs_diff_and_repair_costs_per_service_duration(self):
+                #### Relationship between kilometers driven (KMs diff) and repair costs per service duration
+                myPlot1(df,'KMs Diff','cost','service_duration','scatter','Relationship between kilometers driven (KMs diff) and repair costs per service duration', sort_by=None, ascending=True)
+                return 'Relationship_between_kilometers_driven_KMs_diff_and_repair_costs_per_service_duration'
+            def case_Correlation_between_kilometers_driven_and_service_duration(self):
+                #### Correlation between kilometers driven and service duration
+                myPlot1(df,'KMs Diff','service_duration',None,'scatter','Correlation between kilometers driven and service duration', sort_by=None, ascending=True)
+                return 'Correlation_between_kilometers_driven_and_service_duration'
+            def case_Kilometers_driven_distribution_by_car_model(self):
+                #### Kilometers driven distribution by car model
+                myBoxPlot(data=df,x='car',y='KMs Diff',color=None,title='Kilometers driven distribution by car model')
+                return 'Kilometers_driven_distribution_by_car_model'
+            def case_Kilometers_driven_distribution_by_damage_type(self):
+                #### Kilometers driven distribution by damage type
+                myBoxPlot(data=df,x='damage type',y='KMs Diff',color='damage type',title='Kilometers driven distribution by damage type')
+                return 'Kilometers_driven_distribution_by_damage_type'
+            def case_Kilometers_driven_by_service_location(self):
+                #### Kilometers driven by service location
+                KMs_Diff_location = df.groupby(['location'])['KMs Diff'].sum().reset_index(name='Total Kilometers Difference').sort_values(by='Total Kilometers Difference')
+                myPlot1(KMs_Diff_location,'location','Total Kilometers Difference',None,'bar','Kilometers driven by service location', sort_by=None, ascending=True)
+                return 'Kilometers_driven_by_service_location'
+            
+            def default_case(self):
+                return "Default class method executed"
+            def KL_switch(self, value):
+                method_name = f'case_{value}'
+                method = getattr(self, method_name, self.default_case)
+                return method()    
+        # Usage
+        KL_switcher = SwitchKLCase()
+        KL_result = KL_switcher.KL_switch(selectKilometersInsight)
+        st.write('Kilometers Insight: ',KL_result)
+        
         return 'Kilometers_Insights'
     ################################################################################################## Cost Category Insights
     def case_Cost_Category_Insights(self):
+        df = load_data('maintenance_cleaned_extended.xlsx')
+        st.header('Cost Category Insights')
+        selectCostCategoryInsight = st.sidebar.selectbox('Select Cost Category Insight :',
+                                                 ['Distribution_of_damage_types_across_different_cost_categories',
+                                                  'Relationship_between_cost_categories_and_car_models',
+                                                  'Comparison_of_service_duration_across_different_cost_categories',
+                                                  'Cost_category_breakdown_by_location',
+                                                  'Trends_in_cost_categories_over_time'
+                                                 ], key=12)
+        class SwitchCCCase:
+            def case_Distribution_of_damage_types_across_different_cost_categories(self):
+                #### Distribution of damage types across different cost categories
+                damageType_costCategory = df.groupby(['damage type','cost_category']).size().reset_index(name='Count').sort_values(by='Count')
+                Maximum_row = damageType_costCategory.loc[damageType_costCategory['Count'].idxmax()]
+                r11,r12,r13,r14 = st.columns(4)
+                r11.metric('Maximum Damage Type',Maximum_row['damage type'])
+                r12.metric('Cost Category',Maximum_row['cost_category'])
+                r13.metric('Count',Maximum_row['Count'])
+                myPlot1(damageType_costCategory,'damage type','Count','cost_category','bar','Distribution of damage types across different cost categories', sort_by=None, ascending=True)
+                return 'Distribution_of_damage_types_across_different_cost_categories'
+            def case_Relationship_between_cost_categories_and_car_models(self):
+                #### Relationship between cost categories and car models
+                car_costCategory = df.groupby(['car','cost_category']).size().reset_index(name='Count').sort_values(by=['car'])
+                Maximum_row = car_costCategory.loc[car_costCategory['Count'].idxmax()]
+                r11,r12,r13,r14 = st.columns(4)
+                r11.metric('Car of Maximum Service Count',Maximum_row['car'])
+                r12.metric('Cost Category',Maximum_row['cost_category'])
+                r13.metric('Count',Maximum_row['Count'])
+                myPlot1(car_costCategory,'car','Count','cost_category','bar','Relationship between cost categories and car models', sort_by=None, ascending=True)
+                return 'Relationship_between_cost_categories_and_car_models'
+            def case_Comparison_of_service_duration_across_different_cost_categories(self):
+                #### Comparison of service duration across different cost categories
+                Maximum_row = df.loc[df['service_duration'].idxmax()]
+                r11,r12,r13,r14 = st.columns(4)
+                r11.metric('Cost Category of Maximum Service Duration',Maximum_row['cost_category'])
+                r12.metric('Maximum Service Duration',Maximum_row['service_duration'])
+                myBoxPlot(data=df,x='cost_category',y='service_duration',color='cost_category',title='Comparison of service duration across different cost categories')
+                return 'Comparison_of_service_duration_across_different_cost_categories'
+            def case_Cost_category_breakdown_by_location(self):
+                #### Cost category breakdown by location
+                location_costCategory = df.groupby(['location','cost_category']).size().reset_index(name='Count').sort_values(by=['location'])
+                Maximum_row = location_costCategory.loc[location_costCategory['Count'].idxmax()]
+                r11,r12,r13,r14 = st.columns(4)
+                r11.metric('Location of Maximum Service Count',Maximum_row['location'])
+                r12.metric('Cost Category',Maximum_row['cost_category'])
+                r13.metric('Count',Maximum_row['Count'])
+                myPlot1(location_costCategory,'location','Count','cost_category','bar','Cost category breakdown by location', sort_by=None, ascending=True)
+                return 'Cost_category_breakdown_by_location'
+            def case_Trends_in_cost_categories_over_time(self):
+                #### Trends in cost categories over time
+                df['year_month'] = df['date ready'].dt.year.astype(str) + '_' + df['date ready'].dt.month.astype(str).str.zfill(2)
+                date_costCategory = df.groupby(['year_month','cost_category']).size().reset_index(name='Frequency').sort_values(by='year_month')
+                Maximum_row = date_costCategory.loc[date_costCategory['Frequency'].idxmax()]
+                r11,r12,r13,r14 = st.columns(4)
+                r11.metric('The year and month of Maximum cost category frequency',Maximum_row['year_month'])
+                r12.metric('Cost Category',Maximum_row['cost_category'])
+                r13.metric('Frequency',Maximum_row['Frequency'])
+                
+                myPlot1(date_costCategory,'year_month','Frequency','cost_category','line','Trends in cost categories over time', sort_by=None, ascending=True)
+                return 'Trends_in_cost_categories_over_time'
+            
+            def default_case(self):
+                return "Default class method executed"
+            def CC_switch(self, value):
+                method_name = f'case_{value}'
+                method = getattr(self, method_name, self.default_case)
+                return method()    
+        # Usage
+        CC_switcher = SwitchCCCase()
+        CC_result = CC_switcher.CC_switch(selectCostCategoryInsight)
+        st.write('Cost Category Insight: ',CC_result)
+
         return 'Cost_Category_Insights'
     ################################################################################################## Miscellaneous Insights
     def case_Miscellaneous_Insights(self):
