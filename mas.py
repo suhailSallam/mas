@@ -22,7 +22,9 @@ st.set_page_config(page_title='Maintenance Analysis System',page_icon=None,
                    layout='wide',initial_sidebar_state='auto', menu_items=None)
 # Sidebar for input selections
 st.sidebar.title('Maintenance Analysis System')
-selectMB = st.sidebar.selectbox('Select Analysis :', ['Story_telling',
+selectLang = st.sidebar.selectbox('Select Language اختر اللغة :', ['English','العربية'], key=100)
+selectMB = st.sidebar.selectbox('Select Analysis :', ['Home',
+                                                      'Story_telling',
                                                       'Overview',
                                                       'DataSet',
                                                       'Explore_fields',
@@ -36,7 +38,8 @@ selectMB = st.sidebar.selectbox('Select Analysis :', ['Story_telling',
                                                       'Lcation_Based_Insights',
                                                       'Kilometers_Insights',
                                                       'Cost_Category_Insights',
-                                                      'Miscellaneous_Insights'
+                                                      'Miscellaneous_Insights',
+                                                      'Service_Location_Profitability_Insights'
                                                       ], key=1)
 
 with st.sidebar:
@@ -247,18 +250,42 @@ def DataPreProcessing(data):
 
 # Visualization Functions
 ## Bar, Scatter, Line charts
-def myPlot(data,plotType,title):
-    data = data.sort_values(ascending=True)
-    xs = data.index.astype(str)  
-    ys = data.values
+def myPlot(data, plotType, title, x_label, y_label):
+    data = data.sort_values(ascending=False)
+    xs = data.index.astype(str)  # Convert index to strings for x-axis
+    ys = data.values  # y-axis values
+    # Calculate mean
+    mean_value = ys.mean()
+    # Get only values above the mean
+    above_mean_data = data[data > mean_value]
+    # Get only values below the mean
+    below_mean_data = data[data < mean_value]
+    # Sort values above mean in descending order and select top 3
+    top3_above_mean = above_mean_data.sort_values(ascending=False).head(3)
+    # Sort values below mean in descending order and select bottom 3
+    bot3_below_mean = below_mean_data.sort_values(ascending=False).tail(3)
+    # Create color mapping: blue for top 3 above mean, red for bottom 3 below mean, gray for others
+    colors = ['blue' if index in top3_above_mean.index 
+              else 'red' if index in bot3_below_mean.index 
+              else 'gray' 
+              for index in data.index]
     if plotType == 'bar':
-        fig = px.bar(x = xs, y = ys,color=ys,title=title+' Analysis')
+        fig = px.bar(x=xs, y=ys, title=title + ' Analysis')
+        fig.update_traces(marker_color=colors)  # Bar-specific color update
     elif plotType == 'scatter':
-        fig = px.scatter(x = xs, y = ys,color=ys,title=title+' Analysis')
+        fig = px.scatter(x=xs, y=ys, title=title + ' Analysis')
+        fig.update_traces(marker=dict(color=colors))  # Scatter-specific color update
+    elif plotType == 'pie':
+        fig = px.pie(names=xs, values=ys, title=title + ' Analysis')
+        fig.update_traces(marker=dict(colors=colors))  # Pie-specific color update
     elif plotType == 'line':
-        fig = px.line(x = xs, y = ys,title=title+' Analysis')
-    fig.update_layout(title_x=0.5)
-    #fig.show()
+        fig = px.line(x=xs, y=ys, title=title + ' Analysis')
+    # Update layout for custom axis labels
+    fig.update_layout(
+        title_x=0.0,
+        xaxis_title=x_label,  # Custom x-axis label
+        yaxis_title=y_label   # Custom y-axis label
+    )
     st.plotly_chart(fig,theme=None, use_container_width=True)
 
 def myPlot1(data, xs, ys, clr, plotType, title, sort_by=None, ascending=True):
@@ -270,6 +297,7 @@ def myPlot1(data, xs, ys, clr, plotType, title, sort_by=None, ascending=True):
     yt = str(ys)
     xs = data_sorted[xs]
     ys = data_sorted[ys]
+    clrt= str(clr)
     clr = data_sorted[clr].astype(str) if clr else None
     if plotType == 'bar':
         fig = px.bar(x=xs, y=ys, color=clr, title=title + ' Analysis')
@@ -277,10 +305,35 @@ def myPlot1(data, xs, ys, clr, plotType, title, sort_by=None, ascending=True):
         fig = px.scatter(x=xs, y=ys, color=clr, title=title + ' Analysis')
     elif plotType == 'line':
         fig = px.line(x=xs, y=ys, color=clr, title=title + ' Analysis')
-    fig.update_layout(title_x=0.5)
+    fig.update_layout(title_x=0.0)
     fig.update_layout(xaxis_title=xt, yaxis_title=yt)
-    #fig.show()
+    fig.update_layout(legend_title_text=clrt)
     st.plotly_chart(fig,theme=None, use_container_width=True)
+
+def myPlot11(data, xs, ys, clr, plotType, title, sort_by=None, ascending=True):
+    if sort_by is not None:
+        data_sorted = data.sort_values(by=sort_by, ascending=ascending)
+    else:
+        data_sorted = data
+    xt = str(xs)
+    yt = str(ys)
+    xs = data_sorted[xs]
+    ys = data_sorted[ys]
+    #clr = data_sorted[clr].astype(str) if clr else None
+    if plotType == 'bar':
+        fig = px.bar(x=xs, y=ys, title=title + ' Analysis')
+        fig.update_traces(marker_color=clr)  # Bar-specific color update
+    elif plotType == 'scatter':
+        fig = px.scatter(x=xs, y=ys, title=title + ' Analysis')
+        fig.update_traces(marker=dict(color=clr))  # Scatter-specific color update
+    elif plotType == 'line':
+        fig = px.line(x=xs, y=ys, title=title + ' Analysis')
+        fig.update_traces(marker_color=clr)  # Bar-specific color update
+    fig.update_layout(title_x=0.0)
+    fig.update_layout(xaxis_title=xt, yaxis_title=yt)
+#    fig.show()
+    st.plotly_chart(fig,theme=None, use_container_width=True)
+
     
 def myPlot2(data, plotType, title):
     xs = data.index.astype(str)  # Index (x-axis)
@@ -320,7 +373,18 @@ def mySunBurst(data, name, value, title):
     fig.update_layout(title_x=0.45)
     #fig.show()
     st.plotly_chart(fig,theme=None, use_container_width=True)
-
+def mySunBurst1(data, name1,name2, value,clr, title):
+    fig = px.sunburst(
+        data_frame=data,
+        path=[name1,name2],   # Add both cost_category and damage type to the hierarchy
+        #path=name,
+        values=value,  # Define the values (damage_count)
+        color=clr,
+        title=title +' Analysis'
+    )
+    fig.update_layout(title_x=0.0)
+    fig.update_layout(height=600, margin=dict(t=50, l=25, r=25, b=25))
+    st.plotly_chart(fig,theme=None, use_container_width=True)
 ## Pie chart
 def myPie(data,title_prefix):
     name  = data.index
@@ -333,7 +397,7 @@ def myPie(data,title_prefix):
     fig.update_layout(title_x=0.5)
     #fig.show()
     st.plotly_chart(fig,theme=None, use_container_width=True)
-
+# Functions
 ## Combine DataFrames
 def combine(data,first_field,first_field_count,field_grouped_on,resulting_field_value):
     data_first_cat = data[first_field].value_counts().reset_index()
@@ -342,11 +406,263 @@ def combine(data,first_field,first_field_count,field_grouped_on,resulting_field_
     data_merged = data_merged.merge(data_first_cat,on=first_field)
     return first_field_count, resulting_field_value, data_merged
 
+## TopTailCount
+def TopTailCount(data,count,groupField,SumField):
+    # Get top & Tail COUNT records based on total groupFiled
+    top = data.groupby(groupField)[SumField].sum().sort_index(ascending=False).nlargest(count).index
+    tail = data.groupby(groupField)[SumField].sum().sort_index(ascending=False).nsmallest(count).index
+    # Filter for top corporates
+    top_filtered_data = data[data[groupField].isin(top)].sort_index(ascending=False)
+    tail_filtered_data = data[data[groupField].isin(tail)].sort_index(ascending=False)
+    return top_filtered_data, tail_filtered_data
+
+## Assign_color
+def assign_color(index,top ,tail):
+    if index in top.index:
+        return 'blue'
+    elif index in tail.index:
+        return 'red'
+    else:
+        return 'gray'
+
+## Coloring
+def coloring(data,top,tail):
+    colors = [assign_color(index,top,tail) for index in data.index]
+    return colors
+
+## SumOfsum
+def sumOfsum(data,groupField1,groupField2,sumField):
+    # Step 1: Calculate total sum of CorpLocCostSum for each corporate
+    df_field1_sum = data.groupby(groupField1)[sumField].sum().reset_index(name='First Sum')
+    # Step 2: Merge the total sum back into the original DataFrame
+    df_field2_sum = data.groupby([groupField1, groupField2])[sumField].sum().reset_index(name='Total Sum')
+    # Step 3: Merge the total sum of each corporate into this grouped data
+    df_field2_sum = df_field2_sum.merge(df_field1_sum, on=groupField1)
+    # Step 4: Sort by the total corporate cost (TotalCorpCost) and within that by CorpLocCostSum
+    df_field2_sum = df_field2_sum.sort_values(by=['First Sum', 'Total Sum'], ascending=False)
+    # Step 5: Drop the 'TotalCorpCost' column if you no longer need it
+    df_field2_sum = df_field2_sum.drop(columns=['First Sum'])
+    return df_field2_sum
+## Corporate Client Profitability Insights
+### Corporate Client Profitability
+def Corporate_Client_Profitability():
+    text="Our analysis indicates that customers vary significantly in their profitability. This information should guide our decisions about which branches to keep, close, or expand based on their ability to generate sustainable revenue."
+    display(Markdown('#### *'+text+'*'))
+
+    df = load_data('maintenance_cleaned_extended.xlsx')
+    df_corporate = df.groupby('corporate')['cost'].sum().reset_index(name='Corporate Totla Service Cost').sort_values(by='Corporate Totla Service Cost',ascending=False)
+    top_filterd_data, tail_filtered_data = TopTailCount(df_corporate,3,'corporate','Corporate Totla Service Cost')
+    colors = coloring(df_corporate,top_filterd_data, tail_filtered_data)
+    myPlot11(df_corporate,'corporate','Corporate Totla Service Cost',colors,'bar','Corporate Client Profitability', sort_by='Corporate Totla Service Cost', ascending=False)
+
+## Corporate Client Profitability across Service Locations
+def Corporate_Client_Profitability_across_Service_Locations():
+    selectChart = st.sidebar.selectbox('Select Chart :',['bar','sunburst'], key=16)
+
+    df = load_data('maintenance_cleaned_extended.xlsx')
+    corporate_Location = sumOfsum(df,'corporate','location','cost')
+    if   selectChart =='bar':
+        text = "Analysis reveals significant variations in profitability across different client companies. This suggests a need to focus on branches serving the largest and most profitable clients, while evaluating the performance of other branches to improve their efficiency and increase their overall contribution to profits"
+        display(Markdown('#### *'+text+'*'))
+        myPlot1(corporate_Location,'corporate','Total Sum','location','bar','Corporate Client Profitability across Service Locations', sort_by=None, ascending=True)
+    elif selectChart == 'sunburst':
+        text = "Analysis reveals significant variations in profitability across different client companies. This suggests a need to focus on branches serving the largest and most profitable clients, while evaluating the performance of other branches to improve their efficiency and increase their overall contribution to profits"
+        display(Markdown('#### *'+text+'*'))
+        mySunBurst1(corporate_Location, 'corporate','location', 'Total Sum', 'Total Sum', 'Corporate Client Profitability across Service Locations')
+
+## Corporate Top COUNT Clients Profitability
+def Corporate_Top_COUNT_Clients_Profitability():
+    text="The chart visually represents the magnitude of the profit contribution from each of the major companies to the company's total profits. It can be observed that company 'Xe' is the largest contributor to profits, followed by 'Jordan Transports' and then 'Vestas'."
+    display(Markdown('#### *'+text+'*'))
+
+    df = load_data('maintenance_cleaned_extended.xlsx')
+    top_filtered_data, tail_filtered_data = TopTailCount(df,5,'corporate','cost')
+    myData = top_filtered_data.groupby('corporate')['cost'].sum().reset_index(name='Corporate Cost Sum').sort_values('Corporate Cost Sum',ascending=False)
+    myPlot1(myData,'corporate','Corporate Cost Sum',None,'bar','Corporate Top Clients Profitability', sort_by=None, ascending=True)
+
+## Top Corporates and Their Service Locations' Income Distribution
+def Top_Corporates_and_Their_Service_Locations_Income_Distribution():
+    text="This chart provides a breakdown of the total revenue generated by our top clients, analyzing the contributions from each of our service locations."
+    display(Markdown('#### *'+text+'*'))
+
+    df = load_data('maintenance_cleaned_extended.xlsx')
+    top_filtered_data, tail_filtered_data = TopTailCount(df,5,'corporate','cost')
+    myData = sumOfsum(top_filtered_data,'corporate','location','cost')
+    myPlot1(myData,'corporate','Total Sum','location','bar',"Top Corporates and Their Service Locations' Income Distribution", sort_by=None, ascending=True)
+
+    text="This chart provides a breakdown of the total revenue generated by our top clients, analyzing the contributions from each of our service locations."
+    display(Markdown('#### *'+text+'*'))
+    mySunBurst1(myData, 'corporate','location', 'Total Sum', 'Total Sum', "Top Corporates and Their Service Locations' Income Distribution")
+## Service Location Profitability
+## Top 5 Corporates and Their Top 5 Service Locations' Income Distribution
+def Top_5_Corporates_and_Their_Top_5_Service_Locations_Income_Distribution():
+    selectChart = st.sidebar.selectbox('Select Chart :',['bar','sunburst'], key=17)
+    df = load_data('maintenance_cleaned_extended.xlsx')
+    corporate_Location = sumOfsum(df,'corporate','location','cost')
+    top_5_corporates = df.groupby('corporate')['cost'].sum().sort_index(ascending=False).nlargest(5).index
+    # Step 1: Filter for the top 5 corporates
+    filtered_data_top_corporates = corporate_Location[corporate_Location['corporate'].isin(top_5_corporates)]
+    # Step 2: For each corporate, find the top 5 service locations based on income
+    top_profitable_locations_per_corporate = pd.DataFrame()
+    for corporate in top_5_corporates:
+        # Get the top 5 locations for this corporate
+        top_locations = (filtered_data_top_corporates[filtered_data_top_corporates['corporate'] == corporate]
+                         .nlargest(5, 'Total Sum'))
+        # Identify the less profitable locations for this corporate (those not in the top 5)
+        all_locations_for_corporate = filtered_data_top_corporates[filtered_data_top_corporates['corporate'] == corporate]
+        top_profitable_locations = all_locations_for_corporate[all_locations_for_corporate['location'].isin(top_locations['location'])]
+        # Append the less profitable locations to the  less DataFrame
+        top_profitable_locations_per_corporate = pd.concat([top_profitable_locations_per_corporate, top_profitable_locations])
+    if   selectChart =='bar':
+        text="The chart illustrates the income distribution for the top 5 companies and their top 5 service locations. 'Xe' stands out with the highest revenue, supported by locations such as 'Al-Azazi' and 'Al-Sharqiya'. Some companies may share the same service locations or benefit from different ones."
+        display(Markdown('#### *'+text+'*'))
+        myPlot1(top_profitable_locations_per_corporate,'corporate','Total Sum','location','bar',"Top 5 Corporates and Their Top 5 Service Locations' Income Distribution", sort_by=None, ascending=True)
+    elif selectChart == 'sunburst':
+        text="The chart illustrates the income distribution for the top 5 companies and their top 5 service locations. 'Xe' stands out with the highest revenue, supported by locations such as 'Al-Azazi' and 'Al-Sharqiya'. Some companies may share the same service locations or benefit from different ones."
+        display(Markdown('#### *'+text+'*'))
+        mySunBurst1(top_profitable_locations_per_corporate,'corporate','location','Total Sum','Total Sum',"Top 5 Corporates and Their Top 5 Service Locations' Income Distribution")
+
+## Less Profitable Corporates (Not in Top 5)
+def Less_Profitable_Corporates_Not_in_Top_5():
+    text="The chart illustrates the income distribution for the less profitable companies, these should be encoureged through different ways to maximize their dealing with Ahmad Company ."
+    display(Markdown('#### *'+text+'*'))
+    df = load_data('maintenance_cleaned_extended.xlsx')
+    print('Total Corporates =',df['corporate'].nunique(), 'Less Profitable Corporates (Not in Top 5)=',df['corporate'].nunique() - 5)
+
+    # Filter Corporates, get the tail corporates base on cost sum
+    top_filtered_data, tail_filtered_data = TopTailCount(df,50,'corporate','cost')
+    # Get the dataframe for these tail corporates
+    myData = tail_filtered_data.groupby('corporate')['cost'].sum().reset_index(name='Total Sum').sort_values(by='Total Sum',ascending=False)
+    # Plot the chart
+    myPlot1(myData,'corporate','Total Sum',None,'bar',"Less Profitable Corporates (Not in Top 5)", sort_by=None, ascending=True)
+    
+## Less_Profitable_Service_Locations_for_Each_Top_5_Corporate
+def Less_Profitable_Service_Locations_for_Each_Top_5_Corporate():
+    df = load_data('maintenance_cleaned_extended.xlsx')
+    corporate_Location = sumOfsum(df,'corporate','location','cost')
+    top_5_corporates = df.groupby('corporate')['cost'].sum().sort_index(ascending=False).nlargest(5).index
+    # Step 1: Filter for the top 5 corporates
+    filtered_data_top_corporates = corporate_Location[corporate_Location['corporate'].isin(top_5_corporates)]
+
+    # Step 2: For each corporate, find the top 5 service locations based on income
+    less_profitable_locations_per_corporate = pd.DataFrame()
+
+    for corporate in top_5_corporates:
+        # Get the top 5 locations for this corporate
+        top_locations = (filtered_data_top_corporates[filtered_data_top_corporates['corporate'] == corporate]
+                         .nlargest(5, 'Total Sum'))
+        # Identify the less profitable locations for this corporate (those not in the top 5)
+        all_locations_for_corporate = filtered_data_top_corporates[filtered_data_top_corporates['corporate'] == corporate]
+        less_profitable_locations = all_locations_for_corporate[~all_locations_for_corporate['location'].isin(top_locations['location'])]
+        # Append the less profitable locations to the  less DataFrame
+        less_profitable_locations_per_corporate = pd.concat([less_profitable_locations_per_corporate, less_profitable_locations])
+
+    # Display the less profitable service locations
+    #print("Less profitable service locations (not in top 5 for each corporate):")
+    #print(less_profitable_locations_per_corporate[['corporate', 'location', 'Total Sum']].sort_values(by='Total Sum'))
+
+    text="The chart illustrates the income distribution for the less profitable locations, these should investgated, opertional cost vs income, if the operational cost is more than income, then they should be closed immediatly, employees can be shifted to other profitable locations, else their customers should be encoureged through different ways to maximize their dealing with these locations, hence, with Ahmad Company through hot discount promotions."
+    display(Markdown('#### *'+text+'*'))
+    myPlot1(less_profitable_locations_per_corporate,'location','Total Sum','corporate','bar',"Less Profitable Service Locations (Not in Top 5 for Each Corporate)", sort_by=None, ascending=True)
+
+def Top_Profitable_Service_Locations_for_Each_Top_5_Corporate():
+    df = load_data('maintenance_cleaned_extended.xlsx')
+    corporate_Location = sumOfsum(df,'corporate','location','cost')
+    top_5_corporates = df.groupby('corporate')['cost'].sum().sort_index(ascending=False).nlargest(5).index
+    # Step 1: Filter for the top 5 corporates
+    filtered_data_top_corporates = corporate_Location[corporate_Location['corporate'].isin(top_5_corporates)]
+
+    # Step 2: For each corporate, find the top 5 service locations based on income
+    top_profitable_locations_per_corporate = pd.DataFrame()
+
+    for corporate in top_5_corporates:
+        # Get the top 5 locations for this corporate
+        top_locations = (filtered_data_top_corporates[filtered_data_top_corporates['corporate'] == corporate]
+                         .nlargest(5, 'Total Sum'))
+        # Identify the top profitable locations for this corporate (those in the top 5)
+        all_locations_for_corporate = filtered_data_top_corporates[filtered_data_top_corporates['corporate'] == corporate]
+        top_profitable_locations = all_locations_for_corporate[all_locations_for_corporate['location'].isin(top_locations['location'])]
+        # Append the top profitable locations to the top  DataFrame
+        top_profitable_locations_per_corporate = pd.concat([top_profitable_locations_per_corporate, top_profitable_locations])
+
+    # Display the top profitable service locations
+    #print("top profitable service locations (in top 5 for each corporate):")
+    #print(top_profitable_locations_per_corporate[['corporate', 'location', 'Total Sum']].sort_values(by='Total Sum'))
+    text="The chart illustrates the income distribution for the top profitable locations, employees of these locations should rewarded."
+    display(Markdown('#### *'+text+'*'))
+    myPlot1(top_profitable_locations_per_corporate,'location','Total Sum','corporate','bar',"Top Profitable Service Locations ( in Top 5 for Each Corporate)", sort_by=None, ascending=True)
+
 # Main switch case
 class SwitchMCase:
     ################################################################################################## Stoty Telling
+    def case_Home(self):
+        if selectLang == 'English':
+            st.title('Home Page')
+            st.header('Maintenance Analysis System')
+            st.subheader('Interactive Analysis Dashboard, Delivered to: "Ahmad Company"')
+            st.image('Car Manitenance Services.jpeg')
+        elif selectLang == 'العربية':
+            st.title('الصفحة الرئيسية')
+            st.header('نظام تحليل بيانات الصيانة')
+            st.subheader('لوحة بيانات تحليلية تفاعلية، مقدمة لـ شركة أحمد ')
+            st.image('Car Manitenance Services.jpeg')
+            
+        return 'Home'
+
+    ################################################################################################## Stoty Telling
     def case_Story_telling(self):
-        st.header('Story Telling')
+        r0    = st.columns(1)[0]
+        r1,r2 = st.columns((1,3))
+        if selectLang == 'English':
+            with r0:
+                st.header('Story Telling')
+            r1.image('investor1.png')
+            r2.markdown('#                     ')
+            r2.markdown('#                     ')
+            r2.markdown('#                     ')
+            r2.markdown('# Ahmad is an investor')
+            #st.markdown('# Ahmad is an investor')
+            st.markdown('###### Ahmad has established a company provides car service for different car damages, his company has a lot of locations in different cities in the country.')
+            st.markdown("###### Ahmad's company deals only with corporates not individuals.")
+            st.markdown('###### After one year, Ahmad felt that the profit generated from locations have problems, so he requested to do Data analysis with objective (maximizing the profit and minimizing any loss)')
+            st.markdown('###### Ahmad cannot control the damage happens to cars, and cannot control to which service location this damage in certain car should go.')
+            st.markdown('###### No information was provided with regard to location operational cost, employees salary, employees experience, the only available information is the provided dataset')
+            st.markdown('#### ------------------------------------------------------------------------------------------------------------------------------------------')
+            st.markdown('###### The dataset provides various details such as car information, damage types, dates, service locations, fuel levels, and cost categories.')
+            st.markdown("##### To address Ahmad's situation and maximize income while minimizing loss, here are a few key areas of analysis:")
+            st.markdown('1. Corporate Client Profitability')
+            st.markdown('2. Service Location Profitability')
+            st.markdown('3. Cost Category Optimization')
+            st.markdown('4. Damage Type and Service Strategy')
+            st.markdown('5. Service Duration Efficiency')
+            st.markdown('###### While we should start exploring the dataset and its fields, and the relation of these field with each other to beter understanding the dataset, at the end we will reach to the above 5 analysis and provide the suitable recommendation')
+            st.markdown('##### Follow us')
+            st.markdown('### Suhail Sallam')
+        elif selectLang == 'العربية':
+            with r0:
+                st.header('رواية القصة')
+            r1.image('investor1.png')
+            r2.markdown('#                     ')
+            r2.markdown('#                     ')
+            r2.markdown('#                     ')
+            r2.markdown('# أحمد هو مستثمر')
+            st.markdown('###### أحمد أسس شركة تقدم خدمات السيارات لأعطال متنوعة، وتوجد لشركته العديد من الفروع في مدن مختلفة في الدولة.')
+            st.markdown('###### شركة أحمد تتعامل فقط مع الشركات وليس الأفراد.')
+            st.markdown('###### بعد عام واحد، شعر أحمد أن الأرباح التي تولدها الفروع بها مشكلات، فطلب إجراء تحليل بيانات بهدف (زيادة الأرباح وتقليل أي خسائر).')
+            st.markdown('###### أحمد لا يستطيع التحكم في الأعطال التي تحدث للسيارات، ولا يستطيع التحكم في أي موقع خدمة يجب أن تذهب إليه السيارة المتضررة.')
+            st.markdown('###### لم يتم تقديم أي معلومات تتعلق بتكاليف التشغيل للموقع، أو رواتب الموظفين، أو خبراتهم، والمعلومات المتاحة فقط هي البيانات المقدمة.')
+            st.markdown('#### ------------------------------------------------------------------------------------------------------------------------------------------')
+            st.markdown('###### توفر مجموعة البيانات تفاصيل مختلفة مثل معلومات السيارة، أنواع الأضرار، التواريخ، مواقع الخدمة، مستويات الوقود، وفئات التكاليف.')
+            st.markdown('##### لمعالجة موقف أحمد وزيادة الدخل مع تقليل الخسائر، إليك بعض المجالات الرئيسية للتحليل:')
+            st.markdown('1. ربحية العملاء من الشركات')
+            st.markdown('2. ربحية مواقع الخدمة')
+            st.markdown('3. تحسين فئات التكاليف')
+            st.markdown('4. نوع الضرر واستراتيجية الخدمة')
+            st.markdown('5. كفاءة مدة الخدمة')
+            st.markdown('###### بينما يجب أن نبدأ في استكشاف مجموعة البيانات وحقولها، والعلاقة بين هذه الحقول لفهم أفضل للبيانات، في النهاية سنصل إلى التحليلات الخمسة المذكورة أعلاه ونقدم التوصيات المناسبة.')
+            st.markdown('##### تابعونا')
+            st.markdown('### سهيل سلام')
+
         return 'case_Story_telling'
     ################################################################################################## Overview
     def case_Overview(self):
@@ -397,103 +713,109 @@ class SwitchMCase:
                                                       'delivered_by',
                                                       'returned_by'
                                                       ], key=2)
+        selectChart = st.sidebar.selectbox('Select Chart :',
+                                                     ['bar',
+                                                      'scatter',
+                                                      'pie',
+                                                      'line'
+                                                      ], key=14)
 
         class SwitchFCase:
             def case_yearIn(self):
                 column = 'yearIn'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'yearIn'
             def case_monthIn(self):
                 column = 'monthIn'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'monthIn'
             def case_monthNIn(self):
                 column = 'monthNIn'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'monthNIn'
             def case_dayIn(self):
                 column = 'dayIn'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'dayIn'
             def case_dayNIn(self):
                 column = 'dayNIn'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'dayNIn'
             def case_service_duration(self):
                 column = 'service_duration'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'service_duration'
             def case_damage_type(self):
                 column = 'damage type'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'damage type'
             def case_car(self):
                 column = 'car'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'car'
             def case_KMs_IN(self):
                 column = 'KMs IN'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'KMs_IN'
             def case_KMs_out(self):
                 column = 'KMs out'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'KMs_out'
             def case_KMs_Diff(self):
                 column = 'KMs Diff'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'KMs_Diff'
             def case_Fuel_in(self):
                 column = 'Fuel in'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'Fuel_in'
             def case_Fuel_out(self):
                 column = 'Fuel out'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'Fuel_out'
             def case_Fuel_Diff(self):
                 column = 'Fuel Diff'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'Fuel Diff'
             def case_yearReady(self):
                 column = 'yearReady'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'yearReady'
             def case_monthReady(self):
                 column = 'monthReady'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'monthReady'
             def case_monthNReady(self):
                 column = 'monthNReady'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'monthNReady'
             def case_dayReady(self):
                 column = 'dayReady'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'dayReady'
             def case_dayNReady(self):
                 column = 'dayNReady'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'dayNReady'
             def case_cost_category(self):
                 column = 'cost_category'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'cost_category'
             def case_location(self):
                 column = 'location'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'location'
             def case_corporate(self):
                 column = 'corporate'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'corporate'
             def case_delivered_by(self):
                 column = 'delivered by'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'delivered_by'
             def case_returned_by(self):
                 column = 'returned by'
-                myPlot(df[column].value_counts(),'bar','Field: ' + column.capitalize())
+                myPlot(df[column].value_counts(),selectChart,'Field: ' + column.capitalize(),column.capitalize(), 'Count')
                 return 'returned_by'
 
             def default_case(self):
@@ -537,111 +859,122 @@ class SwitchMCase:
                                                       'location',
                                                       'corporate',
                                                       'delivered_by',
-                                                      'returned_by'
+                                                      'returned_by',
+                                                      'plate_number'
                                                       ], key=3)
+        selectChart = st.sidebar.selectbox('Select Chart :',
+                                                     ['bar',
+                                                      'scatter',
+                                                      'pie',
+                                                      'line'
+                                                      ], key=14)
+
         
-        def uni(column):
+        def uni(column,chart):
             df_column = df.get(column).value_counts()
-            myPlot(df_column,'bar',column.capitalize()+' Count ')
-            myPie(df.groupby([column])['car'].count().sort_values(ascending=False).head(5),column.capitalize()+' Count')
-        df = load_data('maintenance_cleaned_extended.xlsx')
+            myPlot(df_column,chart,column.capitalize()+' Count Values ', column.capitalize(), 'Count Values')
+#        df = load_data('maintenance_cleaned_extended.xlsx')
         class SwitchFCase:
             def case_yearIn(self):
                 column = 'yearIn'
-                uni(column)
+                uni(column,selectChart)
                 return 'yearIn'
             def case_monthIn(self):
                 column = 'monthIn'
-                uni(column)
+                uni(column,selectChart)
                 return 'monthIn'
             def case_monthNIn(self):
                 column = 'monthNIn'
-                uni(column)
+                uni(column,selectChart)
                 return 'monthNIn'
             def case_dayIn(self):
                 column = 'dayIn'
-                uni(column)
+                uni(column,selectChart)
                 return 'dayIn'
             def case_dayNIn(self):
                 column = 'dayNIn'
-                uni(column)
+                uni(column,selectChart)
                 return 'dayNIn'
             def case_service_duration(self):
                 column = 'service_duration'
-                uni(column)
+                uni(column,selectChart)
                 return 'service_duration'
             def case_damage_type(self):
                 column = 'damage type'
-                uni(column)
+                uni(column,selectChart)
                 return 'damage type'
             def case_car(self):
                 column = 'car'
-                uni(column)
+                uni(column,selectChart)
                 return 'car'
             def case_KMs_IN(self):
                 column = 'KMs IN'
-                uni(column)
+                uni(column,selectChart)
                 return 'KMs_IN'
             def case_KMs_out(self):
                 column = 'KMs out'
-                uni(column)
+                uni(column,selectChart)
                 return 'KMs_out'
             def case_KMs_Diff(self):
                 column = 'KMs Diff'
-                uni(column)
+                uni(column,selectChart)
                 return 'KMs_Diff'
             def case_Fuel_in(self):
                 column = 'Fuel in'
-                uni(column)
+                uni(column,selectChart)
                 return 'Fuel_in'
             def case_Fuel_out(self):
                 column = 'Fuel out'
-                uni(column)
+                uni(column,selectChart)
                 return 'Fuel_out'
             def case_Fuel_Diff(self):
                 column = 'Fuel Diff'
-                uni(column)
+                uni(column,selectChart)
                 return 'Fuel Diff'
             def case_yearReady(self):
                 column = 'yearReady'
-                uni(column)
+                uni(column,selectChart)
                 return 'yearReady'
             def case_monthReady(self):
                 column = 'monthReady'
-                uni(column)
+                uni(column,selectChart)
                 return 'monthReady'
             def case_monthNReady(self):
                 column = 'monthNReady'
-                uni(column)
+                uni(column,selectChart)
                 return 'monthNReady'
             def case_dayReady(self):
                 column = 'dayReady'
-                uni(column)
+                uni(column,selectChart)
                 return 'dayReady'
             def case_dayNReady(self):
                 column = 'dayNReady'
-                uni(column)
+                uni(column,selectChart)
                 return 'dayNReady'
             def case_cost_category(self):
                 column = 'cost_category'
-                uni(column)
+                uni(column,selectChart)
                 return 'cost_category'
             def case_location(self):
                 column = 'location'
-                uni(column)
+                uni(column,selectChart)
                 return 'location'
             def case_corporate(self):
                 column = 'corporate'
-                uni(column)
+                uni(column,selectChart)
                 return 'corporate'
             def case_delivered_by(self):
                 column = 'delivered by'
-                uni(column)
+                uni(column,selectChart)
                 return 'delivered_by'
             def case_returned_by(self):
                 column = 'returned by'
-                uni(column)
+                uni(column,selectChart)
                 return 'returned_by'
+            def case_plate_number(self):
+                column = 'plate number'
+                uni(column,selectChart)
+                return 'plate number'
 
             def default_case(self):
                 return "Default class method executed"
@@ -1916,37 +2249,14 @@ class SwitchMCase:
                 return 'Impact_of_delivery_method_on_service_duration'
             def case_Correlation_between_notes_and_high_cost_repairs(self):
                 #### Correlation between notes and high_cost repairs
-                r11,r12,r13,r14 = st.columns(4)
-                h = 'here'
-                r11.metric('I am',h)
-                # Load the Arabic-supported font (replace with the correct path to your font)
                 font_path = 'majalla.ttf'  # Ensure this is in the correct folder or provide a full path
-
-                # Join all text into one string
                 text = ' '.join(df['notes'].astype(str))
-
-                # Reshape the Arabic text so letters are connected
                 reshaped_text = arabic_reshaper.reshape(text)
-
-                # Apply bidi to ensure proper RTL display
                 bidi_text = get_display(reshaped_text)
-
-                # Generate the word cloud with the reshaped, bidi-corrected text
                 wordcloud = WordCloud(font_path=font_path, width=1000, height=800).generate(bidi_text)
-
-                # Create a new figure explicitly
-                #fig, ax = plt.subplots(figsize=(10, 8))  # Ensure we are using subplots to handle axes properly
-
-                # Plot the word cloud using matplotlib
                 plt.imshow(wordcloud, interpolation='bilinear')
                 plt.axis('off')
-
-                # Display the plot in Streamlit
                 st.pyplot(plt)
-
-                # Close the figure to prevent memory issues
-                #plt.close(fig)
-
 
                 return 'Correlation_between_notes_and_high_cost_repairs'
             
@@ -1961,6 +2271,121 @@ class SwitchMCase:
         MS_result = MS_switcher.MS_switch(selectMiscellaneousInsight)
         st.write('Miscellaneous Insight: ',MS_result)
         return 'Miscellaneous_Insights'
+
+    ################################################################################################## Service Location Profitability Insights
+    def case_Service_Location_Profitability_Insights(self):
+        st.header('Service Location Profitability Insights')
+        selectServiceLocationProfitabilityInsight = st.sidebar.selectbox('Se;ect Service Location Profitability Insight :',
+                                                 ['Overview',
+                                                  'Corporate_Client_Profitability',
+                                                  'Corporate_Client_Profitability_across_Service_Locations',
+                                                  'Corporate_Top_COUNT_Clients_Profitability',
+                                                  'Top_Corporates_and_Their_Service_Locations_Income_Distribution',
+                                                  'Top_5_Corporates_and_Their_Top_5_Service_Locations_Income_Distribution',
+                                                  'Less_Profitable_Corporates_Not_in_Top_5',
+                                                  'Less_Profitable_Service_Locations_for_Each_Top_5_Corporate',
+                                                  'Top_Profitable_Service_Locations_for_Each_Top_5_Corporate'
+                                                 ], key=15)
+
+        class SwitchSLPCase:
+            def case_Overview(self):
+                df = load_data('maintenance_cleaned_extended.xlsx')
+                r11,r12,r13,r14 = st.columns(4)
+                r21,r22,r23,r24 = st.columns(4)
+                r31,r32         = st.columns(2)
+                r41,r42         = st.columns(2)
+                r51             = st.columns(1)[0]
+                r61             = st.columns(1)[0]
+                r11.metric('Corporates Count',df['corporate'].nunique())
+                r12.metric('Locations Count',df['location'].nunique())
+                TotalIncomeGenerated = df['cost'].sum()
+                TotalIncomeGeneratedFromTop5 = df.groupby('corporate')['cost'].sum().nlargest(5).sum()
+                r21.metric('Total Income',TotalIncomeGenerated)
+                r22.metric('Top 5 corporates Income',TotalIncomeGeneratedFromTop5)
+                r23.metric('Percentage of',f"{TotalIncomeGeneratedFromTop5 / TotalIncomeGenerated:0.1%}")
+                
+                with r31:
+                    Corporate_Client_Profitability()
+                with r32:
+                    Corporate_Client_Profitability_across_Service_Locations()
+                with r41:
+                    Top_5_Corporates_and_Their_Top_5_Service_Locations_Income_Distribution()
+                with r42:
+                    Less_Profitable_Corporates_Not_in_Top_5()
+                with r51:
+                    Top_Profitable_Service_Locations_for_Each_Top_5_Corporate()
+                with r61:
+                    te00 = 'RECOMANDATIONS'
+                    te01 = '1. Top corporates should be taken care through special Unit'
+                    te02 = '2. Top corporates should be receive promaotion in order to increase Income'
+                    te03 = '3. Top locations employees who serve the top corporates should be rewarded'
+                    te04 = '4. less profitable locations should be investegated for opreational cost, if exceeds its generated income, should be closed immediatly to minimize loss'
+                    te05 = '5. less profitable locations with income more than operational cost should have some promotion to grap more customers in order to maximize income'
+                    te06 = '6. less profitable corporates should be graped with discounts and promotions in order to maximize income'
+                    
+                    ta00 = 'التوصيات'
+                    ta01 = '1. يجب العناية بالشركات الكبرى عبر وحدة خاصة'
+                    ta02 = '2. يجب أن تتلقى الشركات الكبرى عروض للصيانة تجذبها للشركة بهدف تعظيم الأرباح'
+                    ta03 = '3. موظفي الفروع الأعلى التي خدمت أعلى الشركات يجب أن يتم مكافأتهم'
+                    ta04 = '4. يجب تقصي تكاليف تشغيل الفروع التي تزيد تكاليف تشغيلها عن دخلها، وهذه يجب اغلاقها فوراً من أجل وقف الخسارة'
+                    ta05 = '5. الفروع التي تكاليف تشغيلها أقل من ايراداتها يجب أن تقدم عروض لتجذب المزيد من الزبائن بهدف تعظيم الأرباح'
+                    ta06 = '6. الشركات التي نجني منها أرباح قليلة يجب التركيز عليها بالعروض من أجل جذبها بهدف تعظيم الأرباح'
+                    if selectLang == 'English':
+                        st.write(te00)
+                        st.write(te01)
+                        st.write(te02)
+                        st.write(te03)
+                        st.write(te04)
+                        st.write(te05)
+                        st.write(te06)
+                    elif selectLang == 'العربية':
+                        st.write(ta00)
+                        st.write(ta01)
+                        st.write(ta02)
+                        st.write(ta03)
+                        st.write(ta04)
+                        st.write(ta05)
+                        st.write(ta06)
+                
+                return 'Overview'
+            def case_Corporate_Client_Profitability(self):
+                Corporate_Client_Profitability()
+                return 'Corporate_Client_Profitability'
+            def case_Corporate_Client_Profitability_across_Service_Locations(self):
+                Corporate_Client_Profitability_across_Service_Locations()
+                return 'Corporate_Client_Profitability_across_Service_Locations'
+            def case_Corporate_Top_COUNT_Clients_Profitability(self):
+                Corporate_Top_COUNT_Clients_Profitability()
+                return 'Corporate_Top_COUNT_Clients_Profitability'
+            def case_Top_Corporates_and_Their_Service_Locations_Income_Distribution(self):
+                Top_Corporates_and_Their_Service_Locations_Income_Distribution()
+                return 'Top_Corporates_and_Their_Service_Locations_Income_Distribution'
+            def case_Top_5_Corporates_and_Their_Top_5_Service_Locations_Income_Distribution(self):
+                Top_5_Corporates_and_Their_Top_5_Service_Locations_Income_Distribution()
+                return 'Top_5_Corporates_and_Their_Top_5_Service_Locations_Income_Distribution'
+            def case_Less_Profitable_Corporates_Not_in_Top_5(self):
+                Less_Profitable_Corporates_Not_in_Top_5()
+                return 'Less_Profitable_Corporates_Not_in_Top_5'
+            def case_Less_Profitable_Service_Locations_for_Each_Top_5_Corporate(self):
+                Less_Profitable_Service_Locations_for_Each_Top_5_Corporate()
+                return 'Less_Profitable_Service_Locations_for_Each_Top_5_Corporate'
+            def case_Top_Profitable_Service_Locations_for_Each_Top_5_Corporate(self):
+                Top_Profitable_Service_Locations_for_Each_Top_5_Corporate()
+                return 'Top_Profitable_Service_Locations_for_Each_Top_5_Corporate'
+            
+            def default_case(self):
+                return "Default class method executed"
+            def SLP_switch(self, value):
+                method_name = f'case_{value}'
+                method = getattr(self, method_name, self.default_case)
+                return method()    
+        # Usage
+        SLP_switcher = SwitchSLPCase()
+        SLP_result = SLP_switcher.SLP_switch(selectServiceLocationProfitabilityInsight)
+        st.write('Service Location Profitability Insight: ',SLP_result)
+        return 'Service_Location_Profitability_Insight'
+
+
 
     # Needed to switch case
     def default_case(self):
