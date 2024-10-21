@@ -18,29 +18,68 @@ from bidi.algorithm import get_display
 
 
 # Setting page layout ( This command should be after importing libraries )
-st.set_page_config(page_title='Maintenance Analysis System',page_icon=None,
+st.set_page_config(page_title='Maintenance Analysis System نظام تحليل بيانات الصيانة',page_icon=None,
                    layout='wide',initial_sidebar_state='auto', menu_items=None)
 # Sidebar for input selections
-st.sidebar.title('Maintenance Analysis System')
-selectLang = st.sidebar.selectbox('Select Language اختر اللغة :', ['English','العربية'], key=100)
-selectMB = st.sidebar.selectbox('Select Analysis :', ['Home',
-                                                      'Story_telling',
-                                                      'Overview',
-                                                      'DataSet',
-                                                      'Explore_fields',
-                                                      'Explore_value_counts',
-                                                      'Cost_Insights',
-                                                      'Service_Duration_Insights',
-                                                      'Damage_Type_Insights',
-                                                      'Car_Model_Insights',
-                                                      'Fuel_Insights',
-                                                      'Time_Based_Insights',
-                                                      'Lcation_Based_Insights',
-                                                      'Kilometers_Insights',
-                                                      'Cost_Category_Insights',
-                                                      'Miscellaneous_Insights',
-                                                      'Service_Location_Profitability_Insights'
-                                                      ], key=1)
+selectLang = st.sidebar.selectbox('Select Language - اختر اللغة :', ['English','العربية'], key=100)
+
+if selectLang == 'العربية':
+    st.markdown("""
+    <style>
+    body, html {
+        direction: RTL;
+        unicode-bidi: bidi-override;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    st.sidebar.title('نظام تحليل بيانات الصيانة')
+elif selectLang == 'English':
+    st.markdown("""
+    <style>
+    body, html {
+        unicode-bidi: bidi-override;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    st.sidebar.title('Maintenance Analysis System')
+if selectLang == 'العربية':
+    sl1 = 'الصفحة_الرئيسية'
+    sl2 = 'رواية_القصة'
+    sl3 = 'نظرة_شاملة'
+    sl4 = 'مجموعة_البيانات'
+    sl5 = 'اكتشف_الحقول'
+    sl6 = 'اكتشف_قيم_التعداد'
+    sl7 = 'رؤى_تكاليف_الصيانة'
+    sl8 = 'رؤى_مدة_الصيانة'
+    sl9 = 'رؤى_أنواع_الأعطال'
+    sl10= 'رؤى_موديلات_السيارات'
+    sl11 = 'رؤى_كمية_الوقود'
+    sl12 = 'رؤى_الوقت'
+    sl13 = 'رؤى_الفروع'
+    sl14 = 'رؤى_الكيلومترات'
+    sl15 = 'رؤى_فئات_التكلفة'
+    sl16 = 'رؤى_متنوعة'
+    sl17 = 'رؤى_ربحية_فرع_الصيانة'
+elif selectLang == 'English':
+    sl1 = 'Home'
+    sl2 = 'Story_telling'
+    sl3 = 'Overview'
+    sl4 = 'DataSet'
+    sl5 = 'Explore_fields'
+    sl6 = 'Explore_value_counts'
+    sl7 = 'Cost_Insights'
+    sl8 = 'Service_Duration_Insights'
+    sl9 = 'Damage_Type_Insights'
+    sl10= 'Car_Model_Insights'
+    sl11 = 'Fuel_Insights'
+    sl12 = 'Time_Based_Insights'
+    sl13 = 'Lcation_Based_Insights'
+    sl14 = 'Kilometers_Insights'
+    sl15 = 'Cost_Category_Insights'
+    sl16 = 'Miscellaneous_Insights'
+    sl17 = 'Service_Location_Profitability_Insights'
+
+selectMB = st.sidebar.selectbox('Select Analysis :', [sl1,sl2,sl3,sl4,sl5,sl6,sl7,sl8,sl9,sl10,sl11,sl12,sl13,sl14,sl15,sl16,sl17], key=1)
 
 with st.sidebar:
     st.markdown("""
@@ -84,7 +123,7 @@ with st.sidebar:
     }
 
     [data-testid="stToolbar"]::before {
-        content: "Maintenance Analysis System";
+        content: "Maintenance Analysis System نظام تحليل بيانات الصيانة";
     }
 
     [data-testid="collapsedControl"] {
@@ -596,78 +635,82 @@ def Top_Profitable_Service_Locations_for_Each_Top_5_Corporate():
 class SwitchMCase:
     ################################################################################################## Stoty Telling
     def case_Home(self):
-        if selectLang == 'English':
-            st.title('Home Page')
-            st.header('Maintenance Analysis System')
-            st.subheader('Interactive Analysis Dashboard, Delivered to: "Ahmad Company"')
-            st.image('Car Manitenance Services.jpeg')
-        elif selectLang == 'العربية':
-            st.title('الصفحة الرئيسية')
-            st.header('نظام تحليل بيانات الصيانة')
-            st.subheader('لوحة بيانات تحليلية تفاعلية، مقدمة لـ شركة أحمد ')
-            st.image('Car Manitenance Services.jpeg')
-            
+        st.title('Home Page')
+        st.header('Maintenance Analysis System')
+        st.subheader('Interactive Analysis Dashboard, Delivered to: "Ahmad Company"')
+        st.image('Car Manitenance Services.jpeg')
         return 'Home'
+    def case_الصفحة_الرئيسية(self):
+        st.title('الصفحة الرئيسية')
+        st.header('نظام تحليل بيانات الصيانة')
+        st.subheader('لوحة بيانات تحليلية تفاعلية، مقدمة لـ شركة أحمد ')
+        st.image('Car Manitenance Services.jpeg')
+        return 'الصفحة الرئيسية'
 
     ################################################################################################## Stoty Telling
     def case_Story_telling(self):
         r0    = st.columns(1)[0]
         r1,r2 = st.columns((1,3))
-        if selectLang == 'English':
-            with r0:
-                st.header('Story Telling')
-            r1.image('investor1.png')
-            r2.markdown('#                     ')
-            r2.markdown('#                     ')
-            r2.markdown('#                     ')
-            r2.markdown('# Ahmad is an investor')
-            #st.markdown('# Ahmad is an investor')
-            st.markdown('###### Ahmad has established a company provides car service for different car damages, his company has a lot of locations in different cities in the country.')
-            st.markdown("###### Ahmad's company deals only with corporates not individuals.")
-            st.markdown('###### After one year, Ahmad felt that the profit generated from locations have problems, so he requested to do Data analysis with objective (maximizing the profit and minimizing any loss)')
-            st.markdown('###### Ahmad cannot control the damage happens to cars, and cannot control to which service location this damage in certain car should go.')
-            st.markdown('###### No information was provided with regard to location operational cost, employees salary, employees experience, the only available information is the provided dataset')
-            st.markdown('#### ------------------------------------------------------------------------------------------------------------------------------------------')
-            st.markdown('###### The dataset provides various details such as car information, damage types, dates, service locations, fuel levels, and cost categories.')
-            st.markdown("##### To address Ahmad's situation and maximize income while minimizing loss, here are a few key areas of analysis:")
-            st.markdown('1. Corporate Client Profitability')
-            st.markdown('2. Service Location Profitability')
-            st.markdown('3. Cost Category Optimization')
-            st.markdown('4. Damage Type and Service Strategy')
-            st.markdown('5. Service Duration Efficiency')
-            st.markdown('###### While we should start exploring the dataset and its fields, and the relation of these field with each other to beter understanding the dataset, at the end we will reach to the above 5 analysis and provide the suitable recommendation')
-            st.markdown('##### Follow us')
-            st.markdown('### Suhail Sallam')
-        elif selectLang == 'العربية':
-            with r0:
-                st.header('رواية القصة')
-            r1.image('investor1.png')
-            r2.markdown('#                     ')
-            r2.markdown('#                     ')
-            r2.markdown('#                     ')
-            r2.markdown('# أحمد هو مستثمر')
-            st.markdown('###### أحمد أسس شركة تقدم خدمات السيارات لأعطال متنوعة، وتوجد لشركته العديد من الفروع في مدن مختلفة في الدولة.')
-            st.markdown('###### شركة أحمد تتعامل فقط مع الشركات وليس الأفراد.')
-            st.markdown('###### بعد عام واحد، شعر أحمد أن الأرباح التي تولدها الفروع بها مشكلات، فطلب إجراء تحليل بيانات بهدف (زيادة الأرباح وتقليل أي خسائر).')
-            st.markdown('###### أحمد لا يستطيع التحكم في الأعطال التي تحدث للسيارات، ولا يستطيع التحكم في أي موقع خدمة يجب أن تذهب إليه السيارة المتضررة.')
-            st.markdown('###### لم يتم تقديم أي معلومات تتعلق بتكاليف التشغيل للموقع، أو رواتب الموظفين، أو خبراتهم، والمعلومات المتاحة فقط هي البيانات المقدمة.')
-            st.markdown('#### ------------------------------------------------------------------------------------------------------------------------------------------')
-            st.markdown('###### توفر مجموعة البيانات تفاصيل مختلفة مثل معلومات السيارة، أنواع الأضرار، التواريخ، مواقع الخدمة، مستويات الوقود، وفئات التكاليف.')
-            st.markdown('##### لمعالجة موقف أحمد وزيادة الدخل مع تقليل الخسائر، إليك بعض المجالات الرئيسية للتحليل:')
-            st.markdown('1. ربحية العملاء من الشركات')
-            st.markdown('2. ربحية مواقع الخدمة')
-            st.markdown('3. تحسين فئات التكاليف')
-            st.markdown('4. نوع الضرر واستراتيجية الخدمة')
-            st.markdown('5. كفاءة مدة الخدمة')
-            st.markdown('###### بينما يجب أن نبدأ في استكشاف مجموعة البيانات وحقولها، والعلاقة بين هذه الحقول لفهم أفضل للبيانات، في النهاية سنصل إلى التحليلات الخمسة المذكورة أعلاه ونقدم التوصيات المناسبة.')
-            st.markdown('##### تابعونا')
-            st.markdown('### سهيل سلام')
-
+        with r0:
+            st.header('Story Telling')
+        r1.image('investor1.png')
+        r2.markdown('#                     ')
+        r2.markdown('#                     ')
+        r2.markdown('#                     ')
+        r2.markdown('# Ahmad is an investor')
+        st.markdown('###### Ahmad has established a company provides car service for different car damages, his company has a lot of locations in different cities in the country.')
+        st.markdown("###### Ahmad's company deals only with corporates not individuals.")
+        st.markdown('###### After one year, Ahmad felt that the profit generated from locations have problems, so he requested to do Data analysis with objective (maximizing the profit and minimizing any loss)')
+        st.markdown('###### Ahmad cannot control the damage happens to cars, and cannot control to which service location this damage in certain car should go.')
+        st.markdown('###### No information was provided with regard to location operational cost, employees salary, employees experience, the only available information is the provided dataset')
+        st.markdown('#### ------------------------------------------------------------------------------------------------------------------------------------------')
+        st.markdown('###### The dataset provides various details such as car information, damage types, dates, service locations, fuel levels, and cost categories.')
+        st.markdown("##### To address Ahmad's situation and maximize income while minimizing loss, here are a few key areas of analysis:")
+        st.markdown('1. Corporate Client Profitability')
+        st.markdown('2. Service Location Profitability')
+        st.markdown('3. Cost Category Optimization')
+        st.markdown('4. Damage Type and Service Strategy')
+        st.markdown('5. Service Duration Efficiency')
+        st.markdown('###### While we should start exploring the dataset and its fields, and the relation of these field with each other to beter understanding the dataset, at the end we will reach to the above 5 analysis and provide the suitable recommendation')
+        st.markdown('##### Follow us')
+        st.markdown('### Suhail Sallam')
         return 'case_Story_telling'
+    def case_رواية_القصة(self):
+        r0    = st.columns(1)[0]
+        r1,r2 = st.columns((1,3))
+        with r0:
+            st.header('رواية القصة')
+        r1.image('investor1.png')
+        r2.markdown('#                     ')
+        r2.markdown('#                     ')
+        r2.markdown('#                     ')
+        r2.markdown('# أحمد هو مستثمر')
+        st.markdown('###### أحمد أسس شركة تقدم خدمات السيارات لأعطال متنوعة، وتوجد لشركته العديد من الفروع في مدن مختلفة في الدولة.')
+        st.markdown('###### شركة أحمد تتعامل فقط مع الشركات وليس الأفراد.')
+        st.markdown('###### بعد عام واحد، شعر أحمد أن الأرباح التي تولدها الفروع بها مشكلات، فطلب إجراء تحليل بيانات بهدف (زيادة الأرباح وتقليل أي خسائر).')
+        st.markdown('###### أحمد لا يستطيع التحكم في الأعطال التي تحدث للسيارات، ولا يستطيع التحكم في أي موقع خدمة يجب أن تذهب إليه السيارة المتضررة.')
+        st.markdown('###### لم يتم تقديم أي معلومات تتعلق بتكاليف التشغيل للموقع، أو رواتب الموظفين، أو خبراتهم، والمعلومات المتاحة فقط هي البيانات المقدمة.')
+        st.markdown('#### ------------------------------------------------------------------------------------------------------------------------------------------')
+        st.markdown('###### توفر مجموعة البيانات تفاصيل مختلفة مثل معلومات السيارة، أنواع الأضرار، التواريخ، مواقع الخدمة، مستويات الوقود، وفئات التكاليف.')
+        st.markdown('##### لمعالجة موقف أحمد وزيادة الدخل مع تقليل الخسائر، إليك بعض المجالات الرئيسية للتحليل:')
+        st.markdown('1. ربحية العملاء من الشركات')
+        st.markdown('2. ربحية مواقع الخدمة')
+        st.markdown('3. تحسين فئات التكاليف')
+        st.markdown('4. نوع الضرر واستراتيجية الخدمة')
+        st.markdown('5. كفاءة مدة الخدمة')
+        st.markdown('###### بينما يجب أن نبدأ في استكشاف مجموعة البيانات وحقولها، والعلاقة بين هذه الحقول لفهم أفضل للبيانات، في النهاية سنصل إلى التحليلات الخمسة المذكورة أعلاه ونقدم التوصيات المناسبة.')
+        st.markdown('##### تابعونا')
+        st.markdown('### سهيل سلام')
+
+        return 'انتهى عرض رواية القصة'
     ################################################################################################## Overview
     def case_Overview(self):
         st.header('Overview')
         return 'Overview'
+    def case_نظرة_شاملة(self):
+        st.header('نظرة شاملة')
+        return 'انتهى عرض نظرة شاملة'
+
     ################################################################################################## DataSet Exploration before pre processing and Post
     def case_DataSet(self):
         # Exploratory Data Analysis (EDA)
@@ -681,14 +724,27 @@ class SwitchMCase:
         df = load_data('maintenance_cleaned_extended.xlsx')
         analyzeDataSet(df,'post')
         return 'DataSet Exploration before pre-processing ... Done.'
+    def case_مجموعة_البيانات(self):
+        # Exploratory Data Analysis (EDA)
+        ## Uni - Variance Analysis
+        ### DataSet Exploration before pre processing and Post
+        st.header('استكشاف مجموعة البيانات قبل معالجتها')
+        df = load_data('maintenance_cleaned.xlsx')
+        analyzeDataSet(df,'pre')
+        DataPreProcessing(df)
+        st.header('استكشاف البيانات بعد معالجتها')
+        df = load_data('maintenance_cleaned_extended.xlsx')
+        analyzeDataSet(df,'post')
+        return 'انتهى عرض مجموعة البيانات.'
+    
     ################################################################################################## Fields Exploration
     def case_Explore_fields(self):
         # Exploratory Data Analysis (EDA)
         ## Uni - Variance Analysis
         ### Fields Exploration
-        st.header('Explore_fields')
+        st.header('Explore_fields - استكشف الحقول')
         df = load_data('maintenance_cleaned_extended.xlsx')
-        selectField = st.sidebar.selectbox('Select Field :', ['yearIn',
+        selectField = st.sidebar.selectbox('Select Field - اختر الحقل :', ['yearIn',
                                                       'monthIn',
                                                       'monthNIn',
                                                       'dayIn',
@@ -713,7 +769,7 @@ class SwitchMCase:
                                                       'delivered_by',
                                                       'returned_by'
                                                       ], key=2)
-        selectChart = st.sidebar.selectbox('Select Chart :',
+        selectChart = st.sidebar.selectbox('Select Chart - اختر نوع الرسم البياني:',
                                                      ['bar',
                                                       'scatter',
                                                       'pie',
@@ -828,6 +884,9 @@ class SwitchMCase:
         F_switcher = SwitchFCase()
         F_result = F_switcher.F_switch(selectField)
         st.write('FIELDS: ',F_result)
+        return 'Explore_fields'
+    def case_اكتشف_الحقول(self):
+        self.case_Explore_fields()
         return 'Explore_fields'
     ################################################################################################## Fields Value Counts
     def case_Explore_value_counts(self):
@@ -988,6 +1047,9 @@ class SwitchMCase:
         st.write('FIELDS: ',F_result)
 
         return 'Explore_value_counts'
+    def case_اكتشف_قيم_التعداد(self):
+        self.case_Explore_value_counts()
+        return 'اكتشف قيم التعداد'
     ################################################################################################## Cost Insights
     def case_Cost_Insights(self):
         st.header('Cost_Insights')
@@ -1306,6 +1368,9 @@ class SwitchMCase:
         st.write('Cost Insight: ',CI_result)
 
         return 'Cost_Insights'
+    def case_رؤى_تكاليف_الصيانة(self):
+        self.case_Cost_Insights()
+        return 'رؤى تكاليف الصيانة'
     ################################################################################################## Service Duration Insights
     def case_Service_Duration_Insights(self):
         df = load_data('maintenance_cleaned_extended.xlsx')
@@ -1406,6 +1471,9 @@ class SwitchMCase:
         SI_result = SI_switcher.SI_switch(selectServiceInsight)
         st.write('Service Duration Insight: ',SI_result)
         return 'Service_Duration_Insights'
+    def case_رؤى_مدة_الصيانة(self):
+        self.case_Service_Duration_Insights()
+        return 'رؤى مدة الصيانة'
     ################################################################################################## Damage Type Insights
     def case_Damage_Type_Insights(self):
         df = load_data('maintenance_cleaned_extended.xlsx')
@@ -1633,6 +1701,9 @@ class SwitchMCase:
         DI_result = DI_switcher.DI_switch(selectDamageInsight)
         st.write('Damage Type Insight: ',DI_result)
         return 'Damage_Type_Insights'
+    def case_رؤى_أنواع_الأعطال(self):
+        self.case_Damage_Type_Insights()
+        return 'رؤى أنواع الأعطال'
     ################################################################################################## Car Model Insights
     def case_Car_Model_Insights(self):
         df = load_data('maintenance_cleaned_extended.xlsx')
@@ -1728,10 +1799,11 @@ class SwitchMCase:
         CM_switcher = SwitchCMCase()
         CM_result = CM_switcher.CM_switch(selectCarInsight)
         st.write('Car Model Insight: ',CM_result)
-
-        
         
         return 'Car_Model_Insights'
+    def case_رؤى_موديلات_السيارات(self):
+        self.case_Car_Model_Insights()
+        return 'رؤى موديلات السيارات'
     ################################################################################################## Fuel Insights
     def case_Fuel_Insights(self):
         df = load_data('maintenance_cleaned_extended.xlsx')
@@ -1810,6 +1882,9 @@ class SwitchMCase:
         st.write('Fuel Insight: ',FL_result)
         
         return 'Fuel_Insights'
+    def case_رؤى_كمية_الوقود(self):
+        self.case_Fuel_Insights()
+        return 'رؤى كمية الوقود'
     ################################################################################################## Time Based Insights
     def case_Time_Based_Insights(self):
         df = load_data('maintenance_cleaned_extended.xlsx')
@@ -1974,6 +2049,9 @@ class SwitchMCase:
         st.write('Time Based Insight: ',TI_result)
         
         return 'Time_Based_Insights'
+    def case_رؤى_الوقت(self):
+        self.case_Time_Based_Insights()
+        return 'رؤى الوقت'
     ################################################################################################## Location Based Insights
     def case_Lcation_Based_Insights(self):
         df = load_data('maintenance_cleaned_extended.xlsx')
@@ -2054,6 +2132,9 @@ class SwitchMCase:
         st.write('Location Based Insight: ',LC_result)
         
         return 'Lcation_Based_Insights'
+    def case_رؤى_الفروع(self):
+        self.case_Lcation_Based_Insights()
+        return 'رؤى الفروع'
     ################################################################################################## Kilometers Insights
     def case_Kilometers_Insights(self):
         df = load_data('maintenance_cleaned_extended.xlsx')
@@ -2115,6 +2196,9 @@ class SwitchMCase:
         st.write('Kilometers Insight: ',KL_result)
         
         return 'Kilometers_Insights'
+    def case_رؤى_الكيلومترات(self):
+        self.case_Kilometers_Insights()
+        return 'رؤى الكيلومترات'
     ################################################################################################## Cost Category Insights
     def case_Cost_Category_Insights(self):
         df = load_data('maintenance_cleaned_extended.xlsx')
@@ -2190,6 +2274,9 @@ class SwitchMCase:
         st.write('Cost Category Insight: ',CC_result)
 
         return 'Cost_Category_Insights'
+    def case_رؤى_فئات_التكلفة(self):
+        self.case_Cost_Category_Insights()
+        return 'رؤى فئات التكلفة'
     ################################################################################################## Miscellaneous Insights
     def case_Miscellaneous_Insights(self):
         df = load_data('maintenance_cleaned_extended.xlsx')
@@ -2271,7 +2358,9 @@ class SwitchMCase:
         MS_result = MS_switcher.MS_switch(selectMiscellaneousInsight)
         st.write('Miscellaneous Insight: ',MS_result)
         return 'Miscellaneous_Insights'
-
+    def case_رؤى_متنوعة(self):
+        self.case_Miscellaneous_Insights()
+        return 'رؤى متنوعة'
     ################################################################################################## Service Location Profitability Insights
     def case_Service_Location_Profitability_Insights(self):
         st.header('Service Location Profitability Insights')
@@ -2384,7 +2473,9 @@ class SwitchMCase:
         SLP_result = SLP_switcher.SLP_switch(selectServiceLocationProfitabilityInsight)
         st.write('Service Location Profitability Insight: ',SLP_result)
         return 'Service_Location_Profitability_Insight'
-
+    def case_رؤى_ربحية_فرع_الصيانة(self):
+        self.case_Service_Location_Profitability_Insights()
+        return 'رؤى ربحية فرع الصيانة'
 
 
     # Needed to switch case
