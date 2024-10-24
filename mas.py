@@ -15,6 +15,7 @@ import streamlit.components.v1 as comp
 from wordcloud import WordCloud
 import arabic_reshaper
 from bidi.algorithm import get_display
+import streamlit.components.v1 as components
 
 
 # Setting page layout ( This command should be after importing libraries )
@@ -61,7 +62,7 @@ if selectLang == 'العربية':
     sl16 = 'رؤى_متنوعة'
     sl17 = 'رؤى_ربحية_فرع_الصيانة'
     sl18 = 'رؤى_تجويد_فئات_التكلفة'
-    sl19 = 'رؤى_فعالية_وقت_الخدمة'
+    sl19 = 'رؤى_فعالية_مدة_الخدمة'
 elif selectLang == 'English':
     sl1 = 'Home'
     sl2 = 'Story_telling'
@@ -195,37 +196,40 @@ div[data-testid="metric-container"]
 , unsafe_allow_html=True)
 
 
-
-# Cache data loading and processing
+# Functions
+## Cache data loading and processing
 @st.cache_data
 def load_data(file):
     df = pd.read_excel(file)
     return df
 
-# Analyze DataSet function
+## Analyze DataSet
 def analyzeDataSet(DataSet,state):
-    st.subheader('Display data')
+    st.markdown('#### **Display data**')
     st.write(DataSet)
     DataSet.info()
-    st.subheader('Describe Data')
-    st.write(DataSet.describe().round(2))
-    st.subheader('DataFrame for Information about Dataset')
-    information_DataSet = pd.DataFrame({"name": DataSet.columns,
-                     "non-nulls": len(DataSet)-DataSet.isnull().sum().values,
-                     "nulls": DataSet.isnull().sum().values,
-                     "type": DataSet.dtypes.values})
-    display(Markdown(information_DataSet.to_markdown()))
-    st.write(information_DataSet)
+    st.markdown('#### **Describe Data**')
+    st.markdown(DataSet.describe().round(2).to_markdown())
+    st.markdown('#### **DataFrame for Information about Dataset**')
+    information_DataSet = pd.DataFrame({
+            "name": DataSet.columns,
+            "non-nulls": len(DataSet)-DataSet.isnull().sum().values,
+            "nulls": DataSet.isnull().sum().values,
+            "type": DataSet.dtypes.values })
+    st.markdown(information_DataSet.to_markdown())
     # Construct rows
     info_list=[]
     for column in DataSet.columns:
-        row = [column,
-               min(DataSet[column]),
-               max(DataSet[column]),
-               DataSet[column].nunique(),
-               DataSet[column].isna().sum(),
-               DataSet.duplicated().sum()
-              ]
+        try:
+            row = [column,
+                   min(DataSet[column]),
+                   max(DataSet[column]),
+                   DataSet[column].nunique(),
+                   DataSet[column].isna().sum(),
+                   DataSet.duplicated().sum()
+                  ]
+        except:
+            st.markdown(f':red[field: **:blue[{column}]** , needs type correction ] ')
         info_list.append(row)
     st.subheader('DataFrame for information about Dataset Values') 
     # Convert List to DataFrame
@@ -237,21 +241,32 @@ def analyzeDataSet(DataSet,state):
                                      'Number_of_null_records',
                                      'Number_of_duplicated_records'
                                     ])
-    st.write(info_df)
-    #display(Markdown(info_df.to_markdown()))
-    st.subheader('show data types')
-    st.write(info_df.dtypes)
-    st.write('Remove comment character if you want to proceed Running Ydata Report')
-    #pf = ProfileReport(DataSet)
-    #if state == 'pre':
-    #    pf.to_file('maintenance_BEFORE_pre_process.html')
-    #elif state == 'post':
-    #    pf.to_file('maintenance_AFTER_pre_process.html')
-    #else :
-    #    print('for state of analysis, use "pre" or "post"')
+    st.markdown(info_df.to_markdown())
+    pf = ProfileReport(DataSet)
+    if   state == 'Original':
+        pf.to_file('maintenance_Original.html')
+        st.markdown('##### **maintenance_Original.html** is created in your directory')
+        with open('maintenance_Original.html','r', encoding='utf-8') as pf:
+            p = pf.read()
+            st.components.v1.html(p,height=12000)
+    elif state == 'pre':
+        pf.to_file('maintenance_BEFORE_pre_process.html')
+        st.markdown('##### **maintenance_BEFORE_pre_process.html** is created in your directory')
+        with open('maintenance_BEFORE_pre_process.html','r', encoding='utf-8') as pf:
+            p = pf.read()
+            st.components.v1.html(p,height=12000)
+    elif state == 'post':
+        pf.to_file('maintenance_AFTER_pre_process.html')
+        st.markdown('##### **maintenance_AFTER_pre_process.html** is created in your directory')
+        with open('maintenance_AFTER_pre_process.html','r', encoding='utf-8') as pf:
+            p = pf.read()
+            st.components.v1.html(p,height=17000)
+    else :
+        print('for state of analysis, use "Original" or "pre" or "post"')
+    
 
-# Data pre processing
-## Date Processing
+## Data pre processing
+### Date Processing
 ### Extract yearIn, monthIn, monthNIn, dayIn, dayNIn from 'Date in' field
 def DataPreProcessing(data):
     df=data
@@ -291,8 +306,10 @@ def DataPreProcessing(data):
     # Save DataSet post processing to new Excel file
     #df.to_excel('maintenance_cleaned_extended.xlsx')
 
-# Visualization Functions
-## Bar, Scatter, Line charts
+# Functions
+## Visualization
+
+### Bar, Scatter, Line charts
 def myPlot(data, plotType, title, x_label, y_label):
     data = data.sort_values(ascending=False)
     xs = data.index.astype(str)  # Convert index to strings for x-axis
@@ -404,7 +421,7 @@ def myBoxPlot(data,x,y,color,title):
     #fig.show()
     st.plotly_chart(fig,theme=None, use_container_width=True)
 
-## Sunburst chart
+### Sunburst chart
 def mySunBurst(data, name, value, title):
     fig = px.sunburst(
         data_frame=data,
@@ -428,7 +445,8 @@ def mySunBurst1(data, name1,name2, value,clr, title):
     fig.update_layout(title_x=0.0)
     fig.update_layout(height=600, margin=dict(t=50, l=25, r=25, b=25))
     st.plotly_chart(fig,theme=None, use_container_width=True)
-## Pie chart
+
+### Pie chart
 def myPie(data,title_prefix):
     name  = data.index
     value = data.values
@@ -440,7 +458,7 @@ def myPie(data,title_prefix):
     fig.update_layout(title_x=0.5)
     #fig.show()
     st.plotly_chart(fig,theme=None, use_container_width=True)
-# Functions
+
 ## Combine DataFrames
 def combine(data,first_field,first_field_count,field_grouped_on,resulting_field_value):
     data_first_cat = data[first_field].value_counts().reset_index()
@@ -486,6 +504,7 @@ def sumOfsum(data,groupField1,groupField2,sumField):
     # Step 5: Drop the 'TotalCorpCost' column if you no longer need it
     df_field2_sum = df_field2_sum.drop(columns=['First Sum'])
     return df_field2_sum
+
 ## Corporate Client Profitability Insights
 ### Corporate Client Profitability
 def Corporate_Client_Profitability():
@@ -498,7 +517,7 @@ def Corporate_Client_Profitability():
     colors = coloring(df_corporate,top_filterd_data, tail_filtered_data)
     myPlot11(df_corporate,'corporate','Corporate Totla Service Cost',colors,'bar','Corporate Client Profitability', sort_by='Corporate Totla Service Cost', ascending=False)
 
-## Corporate Client Profitability across Service Locations
+### Corporate Client Profitability across Service Locations
 def Corporate_Client_Profitability_across_Service_Locations():
     selectChart = st.sidebar.selectbox('Select Chart :',['bar','sunburst'], key=16)
 
@@ -513,7 +532,7 @@ def Corporate_Client_Profitability_across_Service_Locations():
         st.markdown('###### *'+text+'*')
         mySunBurst1(corporate_Location, 'corporate','location', 'Total Sum', 'Total Sum', 'Corporate Client Profitability across Service Locations')
 
-## Corporate Top COUNT Clients Profitability
+### Corporate Top COUNT Clients Profitability
 def Corporate_Top_COUNT_Clients_Profitability():
     text="The chart visually represents the magnitude of the profit contribution from each of the major companies to the company's total profits. It can be observed that company 'Xe' is the largest contributor to profits, followed by 'Jordan Transports' and then 'Vestas'."
     st.markdown('###### *'+text+'*')
@@ -523,7 +542,7 @@ def Corporate_Top_COUNT_Clients_Profitability():
     myData = top_filtered_data.groupby('corporate')['cost'].sum().reset_index(name='Corporate Cost Sum').sort_values('Corporate Cost Sum',ascending=False)
     myPlot1(myData,'corporate','Corporate Cost Sum',None,'bar','Corporate Top Clients Profitability', sort_by=None, ascending=True)
 
-## Top Corporates and Their Service Locations' Income Distribution
+### Top Corporates and Their Service Locations' Income Distribution
 def Top_Corporates_and_Their_Service_Locations_Income_Distribution():
     text="This chart provides a breakdown of the total revenue generated by our top clients, analyzing the contributions from each of our service locations."
     st.markdown('###### *'+text+'*')
@@ -536,8 +555,9 @@ def Top_Corporates_and_Their_Service_Locations_Income_Distribution():
     text="This chart provides a breakdown of the total revenue generated by our top clients, analyzing the contributions from each of our service locations."
     st.markdown('###### *'+text+'*')
     mySunBurst1(myData, 'corporate','location', 'Total Sum', 'Total Sum', "Top Corporates and Their Service Locations' Income Distribution")
+
 ## Service Location Profitability
-## Top 5 Corporates and Their Top 5 Service Locations' Income Distribution
+### Top 5 Corporates and Their Top 5 Service Locations' Income Distribution
 def Top_5_Corporates_and_Their_Top_5_Service_Locations_Income_Distribution():
     selectChart = st.sidebar.selectbox('Select Chart :',['bar','sunburst'], key=17)
     df = load_data('maintenance_cleaned_extended.xlsx')
@@ -565,7 +585,7 @@ def Top_5_Corporates_and_Their_Top_5_Service_Locations_Income_Distribution():
         st.markdown('###### *'+text+'*')
         mySunBurst1(top_profitable_locations_per_corporate,'corporate','location','Total Sum','Total Sum',"Top 5 Corporates and Their Top 5 Service Locations' Income Distribution")
 
-## Less Profitable Corporates (Not in Top 5)
+### Less Profitable Corporates (Not in Top 5)
 def Less_Profitable_Corporates_Not_in_Top_5():
     text="The chart illustrates the income distribution for the less profitable companies, these should be encoureged through different ways to maximize their dealing with Ahmad Company ."
     st.markdown('###### *'+text+'*')
@@ -579,7 +599,7 @@ def Less_Profitable_Corporates_Not_in_Top_5():
     # Plot the chart
     myPlot1(myData,'corporate','Total Sum',None,'bar',"Less Profitable Corporates (Not in Top 5)", sort_by=None, ascending=True)
     
-## Less_Profitable_Service_Locations_for_Each_Top_5_Corporate
+### Less_Profitable_Service_Locations_for_Each_Top_5_Corporate
 def Less_Profitable_Service_Locations_for_Each_Top_5_Corporate():
     df = load_data('maintenance_cleaned_extended.xlsx')
     corporate_Location = sumOfsum(df,'corporate','location','cost')
@@ -636,8 +656,8 @@ def Top_Profitable_Service_Locations_for_Each_Top_5_Corporate():
     myPlot1(top_profitable_locations_per_corporate,'location','Total Sum','corporate','bar',"Top Profitable Service Locations ( in Top 5 for Each Corporate)", sort_by=None, ascending=True)
 
 
-##Cost Category Optimization Insights
-###Top 10 cost categories profitability
+## Cost Category Optimization Insights
+### Top 10 cost categories profitability
 def Top_10_cost_categories_profitability():
     text ='Observation: This chart identifies the cost categories that consistently generate the highest total income.'
     st.markdown('###### *'+text+'*')
@@ -660,7 +680,7 @@ def Top_10_cost_categories_profitability():
 
     st.plotly_chart(fig,theme=None, use_container_width=True)
 
-###Top 10 cost categories profitability per damage type
+### Top 10 cost categories profitability per damage type
 def Top_10_cost_categories_profitability_per_damage_type():
     text = 'Observation: This chart reveals the specific damage types that significantly impact the profitability of the top 10 cost categories.'
     st.markdown('###### *'+text+'*')
@@ -674,7 +694,7 @@ def Top_10_cost_categories_profitability_per_damage_type():
     # Create the updated bar chart
     myPlot1(summed_filtered_cost_category, 'cost_category', 'Total Sum', 'damage type', 'bar', 'Top 10 cost categories profitability per damage type', sort_by=None, ascending=True)    
 
-###Count of top 10 cost categories profitability
+### Count of top 10 cost categories profitability
 def Count_of_top_10_cost_categories_profitability():
     text ='Observation: This chart complements Chart 1 by showing the frequency with which each top category contributes to profitability.'
     st.markdown('###### *'+text+'*')
@@ -701,7 +721,7 @@ def Count_of_top_10_cost_categories_profitability():
                       xaxis_tickangle=-45, height=500)
     fig.update_layout(title_x=0.0)
     st.plotly_chart(fig,theme=None, use_container_width=True)
-###Less Profitable Cost Categories (Not in Top 10)
+### Less Profitable Cost Categories (Not in Top 10)
 def Less_Profitable_Cost_Categories_Not_in_Top_10():
     text = 'Observation: This chart highlights cost categories that generate lower total income.'
     st.markdown('###### *'+text+'*')
@@ -723,7 +743,7 @@ def Less_Profitable_Cost_Categories_Not_in_Top_10():
                       xaxis_tickangle=-45, height=500)
     fig.update_layout(title_x=0.0)
     st.plotly_chart(fig,theme=None, use_container_width=True)
-###Count of Less Profitable Cost Categories
+### Count of Less Profitable Cost Categories
 def Count_of_Less_Profitable_Cost_Categories():
     text = 'Observation: This chart reinforces the need for caution with less profitable categories, demonstrating their frequent occurrence.'
     st.markdown('###### *'+text+'*')
@@ -753,7 +773,8 @@ def Count_of_Less_Profitable_Cost_Categories():
                       xaxis_tickangle=-45, height=500)
     fig.update_layout(title_x=0.0)
     st.plotly_chart(fig,theme=None, use_container_width=True)
-##Service Duration Efficiency
+
+## Service Duration Efficiency
 ### Service_duration_for_each_service_type
 def Service_duration_for_each_service_type():
     text='Observations:'
@@ -955,30 +976,63 @@ class SwitchMCase:
         st.header('نظرة شاملة')
         return 'انتهى عرض نظرة شاملة'
 
-    ################################################################################################## DataSet Exploration before pre processing and Post
+    ################################################################################################## DataSet Exploration Original, Before processing, After processing
     def case_DataSet(self):
+        selectDataSet = st.sidebar.selectbox('Select DataSet:',
+                                                     ['Original',
+                                                      'Cleaned_and_Before_processing',
+                                                      'After_processing'
+
+                                                      ], key=20)
         # Exploratory Data Analysis (EDA)
         ## Uni - Variance Analysis
-        ### DataSet Exploration before pre processing and Post
-        st.header('DataSet Exploration BEFORE pre-processing')
-        df = load_data('maintenance_cleaned.xlsx')
-        analyzeDataSet(df,'pre')
-        DataPreProcessing(df)
-        st.header('DataSet Exploration AFTER pre-processing')
-        df = load_data('maintenance_cleaned_extended.xlsx')
-        analyzeDataSet(df,'post')
-        return 'DataSet Exploration before pre-processing ... Done.'
+        ### DataSet Exploration for the original Dataset
+        if selectDataSet == 'Original':
+            st.header('Original DataSet Exploration')
+            df = load_data('maintenance.xlsx')
+            analyzeDataSet(df,'Original')
+        
+        ### DataSet Exploration after cleaning and before processing
+        elif selectDataSet == 'Cleaned_and_Before_processing':
+            st.header('DataSet Exploration after cleaning and before pre-processing')
+            df = load_data('maintenance_cleaned.xlsx')
+            analyzeDataSet(df,'pre')
+            DataPreProcessing(df)
+
+        ### DataSet Exploration after processing
+        elif selectDataSet == 'After_processing':
+            st.header('DataSet Exploration after pre-processing')
+            df = load_data('maintenance_cleaned_extended.xlsx')
+            analyzeDataSet(df,'post')
+        return 'DataSet Exploration ... Done.'
+
     def case_مجموعة_البيانات(self):
+        selectDataSet = st.sidebar.selectbox('اختر مجموعة البيانات:',
+                                                     ['الأصلية',
+                                                      'منظفة_وقبل_المعالجة',
+                                                      'بعد_المعالجة'
+
+                                                      ], key=21)
         # Exploratory Data Analysis (EDA)
         ## Uni - Variance Analysis
-        ### DataSet Exploration before pre processing and Post
-        st.header('استكشاف مجموعة البيانات قبل معالجتها')
-        df = load_data('maintenance_cleaned.xlsx')
-        analyzeDataSet(df,'pre')
-        DataPreProcessing(df)
-        st.header('استكشاف البيانات بعد معالجتها')
-        df = load_data('maintenance_cleaned_extended.xlsx')
-        analyzeDataSet(df,'post')
+        ### DataSet Exploration for the original Dataset
+        if selectDataSet == 'الأصلية':
+            st.header('استكشاف مجموعة البيانات الأصلية')
+            df = load_data('maintenance.xlsx')
+            analyzeDataSet(df,'Original')
+
+        ### DataSet Exploration after cleaning and before processing
+        elif selectDataSet == 'منظفة_وقبل_المعالجة':
+            st.header('استكشاف مجموعة البيانات بعد تنظيفها وقبل معالجتها')
+            df = load_data('maintenance_cleaned.xlsx')
+            analyzeDataSet(df,'pre')
+            DataPreProcessing(df)
+
+        ### DataSet Exploration after processing
+        elif selectDataSet == 'بعد_المعالجة':
+            st.header('استكشاف البيانات بعد معالجتها')
+            df = load_data('maintenance_cleaned_extended.xlsx')
+            analyzeDataSet(df,'post')
         return 'انتهى عرض مجموعة البيانات.'
     
     ################################################################################################## Fields Exploration
@@ -2823,59 +2877,57 @@ class SwitchMCase:
                 df = load_data('maintenance_cleaned_extended.xlsx')
                 r11,r12,r13,r14 = st.columns(4)
                 r21,r22         = st.columns(2)
-                r31,r32         = st.columns(2)
+                r31         = st.columns(1)[0]
                 r41             = st.columns(1)[0]
                 r51             = st.columns(1)[0]
                 r61             = st.columns(1)[0]
                 TotalIncomeGenerated = df['cost'].sum()
-                Top_10_Cost_Categories_Income = df.groupby('cost_category')['cost'].sum().nlargest(10).sum()
-
-                r11.metric('Cost Categories',df['cost_category'].nunique())
-                r12.metric('Total Income',TotalIncomeGenerated)
-                r13.metric('Top 10 Cost Categories Income',Top_10_Cost_Categories_Income)
-                r14.metric('Percentage of',f"{Top_10_Cost_Categories_Income / TotalIncomeGenerated:0.1%}")
+                Top_1_Service_Duration = df.groupby('service_duration')['service_duration'].size().nlargest(1).index
+                Top_1_Service_Duration_count = df.groupby('service_duration')['service_duration'].size().nlargest(1)
+                Top_1_Service_Duration_damage_type = df.groupby(['service_duration','damage type']).size().reset_index(name='Count').sort_values(by='Count',ascending=False)
+                Maximum_row = Top_1_Service_Duration_damage_type.loc[Top_1_Service_Duration_damage_type['Count'].idxmax()]
+                r11.metric('Most Service Duration goes for (Number of days)',Top_1_Service_Duration)
+                r12.metric('With occurence of',Top_1_Service_Duration_count)
+                r13.metric('Most of them is for Damage Type',Maximum_row['damage type'])
+                #r14.metric('Percentage of',f"{Top_1_Cost_Categories_Income / TotalIncomeGenerated:0.1%}")
                 with r21:
-                    Top_10_cost_categories_profitability()
+                    Service_duration_for_each_service_type()
                 with r22:
-                    Top_10_cost_categories_profitability_per_damage_type()
+                    Service_duration_per_damage_type()
                 with r31:
-                    Less_Profitable_Cost_Categories_Not_in_Top_10()
-                with r32:
-                    Count_of_Less_Profitable_Cost_Categories()
+                    Service_duration_per_damage_type_per_location()
                 with r41:
-                    '''
-                    ###### Final Recommendations (Across All Charts):
-                    1.	Parts and Material Availability: Delays in receiving parts may be a significant factor contributing to longer service durations. Tracking how long it takes to receive parts for each service type and location can reveal where supply chain improvements are needed.
-
-                    2.	Damage Complexity: Longer service durations could be due to the inherent complexity of certain repairs. By categorizing and analyzing each damage type’s complexity, Ahmad can ensure that longer durations are not mistaken for inefficiency and adjust expectations accordingly.
-
-                    3.	Inventory Management: Ensuring that commonly needed parts are readily available at all locations can help prevent delays. Implement an inventory management system that automatically restocks critical parts to minimize wait times.
-
-                    4.	Client-Specific Preferences: Review service contracts and client requirements to determine if special requests are unnecessarily lengthening service durations. Streamlining these requirements could speed up processes without compromising client satisfaction.
-
-                    5.	Worker and Resource Allocation: Proper allocation of workers and tools, especially in high-traffic locations, can ensure that the right resources are applied to the right jobs. Consider upskilling workers or increasing staff levels where necessary to reduce delays.
-
-                    ###### By addressing these factors holistically—supply chain efficiency, damage complexity, inventory management, client demands, and worker allocation—Ahmad can significantly improve service throughput, reduce delays, and increase overall income.
-                    '''
-                    te00 = 'RECOMANDATIONS'
-                    te01 = '1. Top 10 cost categories generates 93% of income, and the top 5 Categories are the bigest, Ahmad should prioritize these categories for further analysis, optimization, and resource allocation to maximize profitability'
-                    te02 = '2. There are 4 damage types that generate the most of income, Ahmad can use this information to tailor his services and pricing strategies to focus on damage types that generate higher profits. Additionally, he can consider risk management measures to mitigate the impact of less profitable damage types. These revised observations provide a more actionable and insightful perspective on the data, guiding Ahmad towards effective decision-making for maximizing profitability and minimizing losses.'
-                    te03 = '3. Less Profitable cost categories, While a complete elimination might not be feasible, Ahmad should carefully evaluate these categories for potential cost reduction, service optimization, or strategic partnerships to improve profitability, Ahmad should consider implementing targeted strategies to address these categories, such as pricing adjustments, cost reduction, or service discontinuation if necessary.'
-                    ta00 = 'التوصيات'
-                    ta01 = '1. تولد أعلى 10 فئات تكلفة 93% من الدخل، والفئات الخمس الأولى هي الأكبر، ويجب على أحمد إعطاء الأولوية لهذه الفئات لمزيد من التحليل والتحسين وتخصيص الموارد لتحقيق أقصى قدر من الربحية'
-                    ta02 = '2. هناك أربعة أنواع من الأضرار التي تولد أكبر قدر من الدخل، ويمكن لأحمد استخدام هذه المعلومات لتخصيص خدماته واستراتيجيات التسعير للتركيز على أنواع الأضرار التي تولد أرباحًا أعلى. بالإضافة إلى ذلك، يمكنه النظر في تدابير إدارة المخاطر للتخفيف من تأثير أنواع الأضرار الأقل ربحية. توفر هذه الملاحظات المنقحة منظورًا أكثر قابلية للتنفيذ وأكثر ثاقبة للبيانات، مما يوجه أحمد نحو اتخاذ قرارات فعالة لتحقيق أقصى قدر من الربحية وتقليل الخسائر.'
-                    ta03 = '3. فئات التكلفة الأقل ربحية، في حين أن الإزالة الكاملة قد لا تكون ممكنة، يجب على أحمد تقييم هذه الفئات بعناية من أجل خفض التكاليف المحتمل، أو تحسين الخدمة، أو الشراكات الاستراتيجية لتحسين الربحية، يجب على أحمد أن يفكر في تنفيذ استراتيجيات مستهدفة لمعالجة هذه الفئات، مثل تعديلات الأسعار، أو خفض التكاليف، أو إيقاف الخدمة إذا لزم الأمر.'
+                    te00 = '###### Final Recommendations (Across All Charts):'
+                    te01 = '1.	Parts and Material Availability: Delays in receiving parts may be a significant factor contributing to longer service durations. Tracking how long it takes to receive parts for each service type and location can reveal where supply chain improvements are needed.'
+                    te02 = '2.	Damage Complexity: Longer service durations could be due to the inherent complexity of certain repairs. By categorizing and analyzing each damage type’s complexity, Ahmad can ensure that longer durations are not mistaken for inefficiency and adjust expectations accordingly.'
+                    te03 = '3.	Inventory Management: Ensuring that commonly needed parts are readily available at all locations can help prevent delays. Implement an inventory management system that automatically restocks critical parts to minimize wait times.'
+                    te04 = '4.	Client-Specific Preferences: Review service contracts and client requirements to determine if special requests are unnecessarily lengthening service durations. Streamlining these requirements could speed up processes without compromising client satisfaction.'
+                    te05 = '5.	Worker and Resource Allocation: Proper allocation of workers and tools, especially in high-traffic locations, can ensure that the right resources are applied to the right jobs. Consider upskilling workers or increasing staff levels where necessary to reduce delays.'
+                    te06 = '###### By addressing these factors holistically—supply chain efficiency, damage complexity, inventory management, client demands, and worker allocation—Ahmad can significantly improve service throughput, reduce delays, and increase overall income.'
+                    ta00 = '###### التوصيات النهائية (عبر جميع الرسوم البيانية):'
+                    ta01 = '1. توفر الأجزاء والمواد: قد يكون التأخير في استلام الأجزاء عاملاً هاماً يساهم في زيادة مدة الخدمة. يمكن أن يكشف تتبع مدة استلام الأجزاء لكل نوع خدمة وموقع عن الأماكن التي تحتاج إلى تحسينات في سلسلة التوريد.'
+                    ta02 = '2. تعقيد الأضرار: قد تكون مدة الخدمة الأطول نتيجة للتعقيد الفطري لبعض الإصلاحات. من خلال تصنيف وتحليل تعقيد كل نوع من الأضرار، يمكن لأحمد التأكد من أن المدد الأطول لا تُفسر على أنها عدم كفاءة وضبط التوقعات وفقاً لذلك.'
+                    ta03 = '3. إدارة المخزون: ضمان توفر الأجزاء المطلوبة بشكل شائع في جميع المواقع يمكن أن يساعد في منع التأخير. نفذ نظام إدارة مخزون يقوم تلقائيًا بإعادة تخزين الأجزاء الحرجة لتقليل أوقات الانتظار.'
+                    ta04 = '4. تفضيلات العملاء المحددة: مراجعة عقود الخدمة ومتطلبات العملاء لتحديد ما إذا كانت الطلبات الخاصة تطيل مدة الخدمة بشكل غير ضروري. تبسيط هذه المتطلبات يمكن أن يسرع العمليات دون التأثير على رضا العملاء.'
+                    ta05 = '5. تخصيص العمال والموارد: تخصيص العمال والأدوات بشكل صحيح، خاصة في المواقع ذات الازدحام الشديد، يمكن أن يضمن تطبيق الموارد المناسبة على الوظائف المناسبة. يجب النظر في تحسين مهارات العمال أو زيادة عدد الموظفين عند الضرورة لتقليل التأخيرات.'
+                    ta06 = '###### من خلال معالجة هذه العوامل بشكل شمولي—كفاءة سلسلة التوريد، تعقيد الأضرار، إدارة المخزون، متطلبات العملاء، وتخصيص العمال—يمكن لأحمد تحسين كفاءة الخدمة بشكل كبير، تقليل التأخيرات، وزيادة الدخل الإجمالي.'
                     
                     if selectLang == 'English':
                         st.write(te00)
                         st.write(te01)
                         st.write(te02)
                         st.write(te03)
+                        st.write(te04)
+                        st.write(te05)
+                        st.write(te06)
                     elif selectLang == 'العربية':
                         st.write(ta00)
                         st.write(ta01)
                         st.write(ta02)
                         st.write(ta03)
+                        st.write(ta04)
+                        st.write(ta05)
+                        st.write(ta06)
                 return 'OverView'
             def case_Service_duration_for_each_service_type(self):
                 Service_duration_for_each_service_type()
