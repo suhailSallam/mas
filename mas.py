@@ -16,7 +16,15 @@ from wordcloud import WordCloud
 import arabic_reshaper
 from bidi.algorithm import get_display
 import streamlit.components.v1 as components
-
+import pickle
+from sklearn.linear_model import Lasso
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
 
 # Setting page layout ( This command should be after importing libraries )
 st.set_page_config(page_title='Maintenance Data Analysis System نظام تحليل بيانات الصيانة',page_icon=None,
@@ -47,42 +55,44 @@ if selectLang == 'العربية':
     sl1 = 'الصفحة_الرئيسية'
     sl2 = 'رواية_القصة'
     sl3 = 'نظرة_شاملة'
-    sl4 = 'مجموعة_البيانات'
-    sl5 = 'اكتشف_الحقول'
-    sl6 = 'اكتشف_قيم_التعداد'
-    sl7 = 'رؤى_تكاليف_الصيانة'
-    sl8 = 'رؤى_مدة_الصيانة'
-    sl9 = 'رؤى_أنواع_الأعطال'
-    sl10= 'رؤى_موديلات_السيارات'
-    sl11 = 'رؤى_كمية_الوقود'
-    sl12 = 'رؤى_الوقت'
-    sl13 = 'رؤى_الفروع'
-    sl14 = 'رؤى_الكيلومترات'
-    sl15 = 'رؤى_فئات_التكلفة'
-    sl16 = 'رؤى_متنوعة'
-    sl17 = 'رؤى_ربحية_فرع_الصيانة'
-    sl18 = 'رؤى_تجويد_فئات_التكلفة'
-    sl19 = 'رؤى_فعالية_مدة_الخدمة'
+    sl4 = 'توقع_التكلفة'
+    sl5 = 'مجموعة_البيانات'
+    sl6 = 'اكتشف_الحقول'
+    sl7 = 'اكتشف_قيم_التعداد'
+    sl8 = 'رؤى_تكاليف_الصيانة'
+    sl9 = 'رؤى_مدة_الصيانة'
+    sl10 = 'رؤى_أنواع_الأعطال'
+    sl11= 'رؤى_موديلات_السيارات'
+    sl12 = 'رؤى_كمية_الوقود'
+    sl13 = 'رؤى_الوقت'
+    sl14 = 'رؤى_الفروع'
+    sl15 = 'رؤى_الكيلومترات'
+    sl16 = 'رؤى_فئات_التكلفة'
+    sl17 = 'رؤى_متنوعة'
+    sl18 = 'رؤى_ربحية_فرع_الصيانة'
+    sl19 = 'رؤى_تجويد_فئات_التكلفة'
+    sl20 = 'رؤى_فعالية_مدة_الخدمة'
 elif selectLang == 'English':
     sl1 = 'Home'
     sl2 = 'Story_telling'
     sl3 = 'Overview'
-    sl4 = 'DataSet'
-    sl5 = 'Explore_fields'
-    sl6 = 'Explore_value_counts'
-    sl7 = 'Cost_Insights'
-    sl8 = 'Service_Duration_Insights'
-    sl9 = 'Damage_Type_Insights'
-    sl10= 'Car_Model_Insights'
-    sl11 = 'Fuel_Insights'
-    sl12 = 'Time_Based_Insights'
-    sl13 = 'Lcation_Based_Insights'
-    sl14 = 'Kilometers_Insights'
-    sl15 = 'Cost_Category_Insights'
-    sl16 = 'Miscellaneous_Insights'
-    sl17 = 'Service_Location_Profitability_Insights'
-    sl18 = 'Cost_Category_Optimization_Insights'
-    sl19 = 'Service_Duration_Efficiency_Insights'
+    sl4 = 'Cost_Prediction'
+    sl5 = 'DataSet'
+    sl6 = 'Explore_fields'
+    sl7 = 'Explore_value_counts'
+    sl8 = 'Cost_Insights'
+    sl9 = 'Service_Duration_Insights'
+    sl10 = 'Damage_Type_Insights'
+    sl11= 'Car_Model_Insights'
+    sl12 = 'Fuel_Insights'
+    sl13 = 'Time_Based_Insights'
+    sl14 = 'Lcation_Based_Insights'
+    sl15 = 'Kilometers_Insights'
+    sl16 = 'Cost_Category_Insights'
+    sl17 = 'Miscellaneous_Insights'
+    sl18 = 'Service_Location_Profitability_Insights'
+    sl19 = 'Cost_Category_Optimization_Insights'
+    sl20 = 'Service_Duration_Efficiency_Insights'
 
 selectMB = st.sidebar.selectbox('Select Analysis :', [sl1,sl2,sl3,sl4,sl5,sl6,sl7,sl8,sl9,sl10,sl11,sl12,sl13,sl14,sl15,sl16,sl17,sl18,sl19], key=1)
 
@@ -303,9 +313,31 @@ def DataPreProcessing(data):
         range(2000,3000,1):'2000:3000'
     }
     df['cost_category'] = df['cost'].replace(cost_dict)
-    # Save DataSet post processing to new Excel file
-    #df.to_excel('maintenance_cleaned_extended.xlsx')
+    ### Service Duration Catigory
+    service_duration_dict = {
+        'اصلاح بودي':5,
+        'اصلاح زجاج':1,
+        'اصلاح فرش':2,
+        'اصلاح كهرباء':2,
+        'اصلاح كوشوك':1,
+        'اصلاح مكانيك':1,
+        'غيار زيت':1
+        }
+    df['service_duration_avg_days'] = df['service_duration'].replace(service_duration_dict)
+    ### Kms In Category
+    Kms_dict = {
+        range(0,50000,1)      : 0.1,
+        range(50000,100000,1) : 0.3,
+        range(100000,150000,1): 0.5,
+        range(150000,500000,1): 0.7,
+        range(500000,999999,1): 0.9
+        }
 
+    df['service_probability'] = df['KMs IN'].replace(Kms_dict)
+    # Save DataSet post processing to new Excel file
+    df.to_excel('maintenance_cleaned_extended.xlsx')
+    st.write('File Created')
+    
 # Functions
 ## Visualization
 
@@ -505,6 +537,301 @@ def sumOfsum(data,groupField1,groupField2,sumField):
     df_field2_sum = df_field2_sum.drop(columns=['First Sum'])
     return df_field2_sum
 
+## OverView
+### OverViewContent
+def OverViewContent():
+    ExecutiveSummary = {
+        "English": {
+            "ExecutiveSummaryTitle": ":blue[Executive Summary]",
+            "ExecutiveSummary-1": "##### This quantitative analysis assesses potential strategies for increasing customer engagement through targeted promotions, while also evaluating the feasibility of closing underperforming locations and reallocating employees to the top 10 most profitable sites.",
+            "ExecutiveSummary-2": "##### In the :red[promotions] section, you can use the :red[side menu] to adjust the average revenue increase percentage.",
+            "ExecutiveSummary-3": "##### For employee reallocation, the projected revenue boost considers each location's average revenue alongside the impact of staff distribution to the higher-performing locations.",
+            "ExecutiveSummary-4": "##### Top-performing locations receive a lower percentage of employees reallocated, whereas underperforming locations see a higher reallocation percentage."
+        },
+        "العربية": {
+            "ExecutiveSummaryTitle": ":blue[الملخص التنفيذي]",
+            "ExecutiveSummary-1": "##### هذا التحليل الكمي يقيّم استراتيجيات محتملة لزيادة تفاعل العملاء من خلال العروض الترويجية المستهدفة، كما يدرس جدوى إغلاق المواقع ذات الأداء الضعيف وإعادة توزيع الموظفين إلى أفضل 10 مواقع من حيث الربحية.",
+            "ExecutiveSummary-2": "##### في قسم :red[العروض الترويجية]، يمكنك استخدام :red[القائمة الجانبية] لتحديد نسبة الزيادة المتوقعة في الإيرادات.",
+            "ExecutiveSummary-3": "##### بالنسبة لإعادة توزيع الموظفين، يتم احتساب الزيادة المتوقعة في الإيرادات بناءً على متوسط الإيرادات لكل موقع وتأثير توزيع الموظفين على المواقع العشرة ذات الأداء الأعلى.",
+            "ExecutiveSummary-4": "##### تتلقى أعلى المواقع من المواقع العشرة ذات الأداء الأعلى نسبة أقل من الموظفين المُعاد توزيعهم، في حين تتلقى المواقع ذات الأداء الأضعف من المواقع العشرة نسبة أكبر."
+        }
+    }
+    st.subheader(ExecutiveSummary[selectLang]["ExecutiveSummaryTitle"])
+    st.markdown(ExecutiveSummary[selectLang]["ExecutiveSummary-1"])
+    st.markdown(ExecutiveSummary[selectLang]["ExecutiveSummary-2"])
+    st.markdown(ExecutiveSummary[selectLang]["ExecutiveSummary-3"])
+    st.markdown(ExecutiveSummary[selectLang]["ExecutiveSummary-4"])
+
+    df = load_data('maintenance_cleaned_extended.xlsx')
+    selectIncrease = st.sidebar.selectbox('Select promotions Increase Rate:',
+                                          [0.05,
+                                           0.1,
+                                           0.15,
+                                           0.2,
+                                           0.25
+                                          ], key=22)
+    # 1. Calculate average baseline revenue per location
+    avg_revenue = df.groupby('location')['cost'].mean().reset_index(name='Avg_Baseline_Revenue')
+    # 2. Apply 15% increase for promotional impact to all locations
+    avg_revenue['Revenue_with_Promotions'] = avg_revenue['Avg_Baseline_Revenue'] * (1+selectIncrease)
+    # 3. Determine total revenue from each location
+    revenue = df.groupby('location')['cost'].sum().reset_index(name='Total_Revenue')
+    # 4. Determine top 10 revenue-generating locations based on total revenue
+    top_10_locations = revenue.nlargest(10, 'Total_Revenue')['location'].tolist()
+    # 5. Create a DataFrame for top 10 locations
+    top_10_revenue = revenue[revenue['location'].isin(top_10_locations)]
+    # 6. Merge average revenue with top 10 revenue
+    top_10_avg_revenue = avg_revenue[avg_revenue['location'].isin(top_10_locations)]
+    # 7. Apply reallocations
+    # Sort top 10 locations in ascending order of Total_Revenue to assign higher employee percentages to lower revenue locations
+    top_10_avg_revenue = top_10_avg_revenue.merge(top_10_revenue, on='location')
+    top_10_avg_revenue = top_10_avg_revenue.sort_values(by='Total_Revenue')
+    # 8. Calculate Employee Percentage for reallocation
+    top_10_avg_revenue['Employee_Percentage'] = (1 - top_10_avg_revenue['Total_Revenue'] / top_10_avg_revenue['Total_Revenue'].sum())
+    # 9. Calculate expected increase from reallocations
+    top_10_avg_revenue['Reallocation_Impact'] = top_10_avg_revenue['Avg_Baseline_Revenue'] * top_10_avg_revenue['Employee_Percentage']
+    top_10_avg_revenue['Revenue_with_Reallocation'] = top_10_avg_revenue['Revenue_with_Promotions'] + top_10_avg_revenue['Reallocation_Impact']
+    # Calculate total revenue increase for each scenario
+    total_promotion_increase = avg_revenue['Revenue_with_Promotions'].sum() - avg_revenue['Avg_Baseline_Revenue'].sum()
+    total_reallocation_increase = top_10_avg_revenue['Reallocation_Impact'].sum()
+    r11,r12,r13 = st.columns(3)
+    r11.metric('Promotion Sugessted Increase Rate is:',f'{selectIncrease}%')
+    r12.metric('Estimated Annual Average Revenue Increase from Promotions for All Locations:',total_promotion_increase.round(2))
+    r13.metric('Estimated Annual Average Revenue Increase from Reallocation for Top 10 Locations:',total_reallocation_increase.round(2))
+    st.subheader(':blue[Promotions Analysis]')
+    # 10. Visualizations
+    r21,r22,r23 = st.columns(3)
+    r31,r32,r33 = st.columns(3)
+    r41         = st.columns(1)[0]
+    r51,r52,r53 = st.columns(3)
+    r61,r62,r63 = st.columns(3)
+    # 1. Baseline Average Revenue Before Promotions
+    with r31:
+        myPlot1(data=avg_revenue, xs='location', ys='Avg_Baseline_Revenue', clr='location', plotType='bar', title='Baseline average revenue BEFORE promotions / locations', sort_by='Avg_Baseline_Revenue', ascending=False)
+    # 2. Expected Increase Due to Promotions
+    with r32:
+        avg_revenue['Expected_Increse_After_Promotions'] = avg_revenue['Revenue_with_Promotions'] - avg_revenue['Avg_Baseline_Revenue']
+        myPlot1(data=avg_revenue, xs='location', ys='Expected_Increse_After_Promotions', clr='location', plotType='bar', title='Expected average revenue INCREASE / location', sort_by='Revenue_with_Promotions', ascending=False)
+    # 3. Total Expected Revenue After Promotions
+    with r33:
+        avg_revenue['Total_Expected_After_Promotions'] = avg_revenue['Revenue_with_Promotions']
+        myPlot1(data=avg_revenue, xs='location', ys='Total_Expected_After_Promotions', clr='location', plotType='bar', title='Expected average revenue AFTER promotions / location', sort_by='Total_Expected_After_Promotions', ascending=False)
+    with r41:
+        st.subheader(':blue[Reallocations Analysis]')
+    # 4. Baseline Average Revenue for Top 10 Locations Before Reallocations
+    with r61:
+        myPlot1(data=top_10_avg_revenue, xs='location', ys='Avg_Baseline_Revenue', clr='location', plotType='bar', title='Baseline average revenue for top 10 locations BEFORE reallocations', sort_by='Avg_Baseline_Revenue', ascending=False)
+    # 5. Expected Increase Due to Reallocation
+    with r62:
+        myPlot1(data=top_10_avg_revenue, xs='location', ys='Reallocation_Impact', clr='location', plotType='bar', title='Expected average revenue INCREASE for top 10 locations', sort_by='Reallocation_Impact', ascending=False)
+    # 6. Total Expected Average After Reallocation for Top 10
+    with r63:
+        myPlot1(data=top_10_avg_revenue, xs='location', ys='Revenue_with_Reallocation', clr='location', plotType='bar', title='Expected average revenue AFTER reallocation for top 10 locations', sort_by='Revenue_with_Reallocation', ascending=False)
+    st.subheader(':blue[Service Duration Analysis]')
+    r71 = st.columns(1)[0]
+    r81 = st.columns(1)[0]
+    r91 = st.columns(1)[0]
+    #### Average Service duration by location
+    with r71:
+        avg_service_duration_by_damage = df.groupby('location')['service_duration'].mean().round(1).sort_index().reset_index(name='AverageServiceDuration')
+        myPlot1(avg_service_duration_by_damage,'location','AverageServiceDuration','location','bar','Average service duration by location', sort_by='AverageServiceDuration', ascending=True)
+    #### Service duration trends by  year - month
+    with r81:
+        service_duration_by_dateReady = df.groupby(['yearReady','monthReady'])['service_duration'].mean().round(1).sort_values().reset_index(name='ServiceDurationDateReady')
+        myPlot1(service_duration_by_dateReady,'monthReady','ServiceDurationDateReady','yearReady','line','Average Service duration trends by year - month', sort_by='monthReady', ascending=True)
+
+    with r91:
+        ExecutiveSummary_ServiceDuration = {
+        "English": {
+            "ExecutiveSummary_ServiceDurationTitle": ":blue[##### Service duration final recommendations:]",
+            "ExecutiveSummary_ServiceDuration-1": "###### 1.	Parts and Material Availability: Delays in receiving parts may be a significant factor contributing to longer service durations. Tracking how long it takes to receive parts for each service type and location can reveal where supply chain improvements are needed.",
+            "ExecutiveSummary_ServiceDuration-2": "###### 2.	Damage Complexity: Longer service durations could be due to the inherent complexity of certain repairs. By categorizing and analyzing each damage type’s complexity, Ahmad can ensure that longer durations are not mistaken for inefficiency and adjust expectations accordingly.",
+            "ExecutiveSummary_ServiceDuration-3": "###### 3.	Inventory Management: Ensuring that commonly needed parts are readily available at all locations can help prevent delays. Implement an inventory management system that automatically restocks critical parts to minimize wait times.",
+            "ExecutiveSummary_ServiceDuration-4": "###### 4.	Client-Specific Preferences: Review service contracts and client requirements to determine if special requests are unnecessarily lengthening service durations. Streamlining these requirements could speed up processes without compromising client satisfaction.",
+            "ExecutiveSummary_ServiceDuration-5": "###### 5.	Worker and Resource Allocation: Proper allocation of workers and tools, especially in high-traffic locations, can ensure that the right resources are applied to the right jobs. Consider upskilling workers or increasing staff levels where necessary to reduce delays.",
+            "ExecutiveSummary_ServiceDuration-6": "##### By addressing these factors holistically—supply chain efficiency, damage complexity, inventory management, client demands, and worker allocation — Mr. Ahmad can significantly improve service throughput, reduce delays, and increase overall income."
+        },
+        "العربية": {
+            "ExecutiveSummary_ServiceDurationTitle": ":blue[التوصيات النهائية لمدة الخدمة]",
+            "ExecutiveSummary_ServiceDuration-1": "###### 1. توفر الأجزاء والمواد: قد يكون التأخير في استلام الأجزاء عاملاً هاماً يساهم في زيادة مدة الخدمة. يمكن أن يكشف تتبع مدة استلام الأجزاء لكل نوع خدمة وموقع عن الأماكن التي تحتاج إلى تحسينات في سلسلة التوريد.",
+            "ExecutiveSummary_ServiceDuration-2": "###### 2. تعقيد الأضرار: قد تكون مدة الخدمة الأطول نتيجة للتعقيد الفطري لبعض الإصلاحات. من خلال تصنيف وتحليل تعقيد كل نوع من الأضرار، يمكن لأحمد التأكد من أن المدد الأطول لا تُفسر على أنها عدم كفاءة وضبط التوقعات وفقاً لذلك.",
+            "ExecutiveSummary_ServiceDuration-3": "###### 3. إدارة المخزون: ضمان توفر الأجزاء المطلوبة بشكل شائع في جميع المواقع يمكن أن يساعد في منع التأخير. نفذ نظام إدارة مخزون يقوم تلقائيًا بإعادة تخزين الأجزاء الحرجة لتقليل أوقات الانتظار.",
+            "ExecutiveSummary_ServiceDuration-4": "###### 4. تفضيلات العملاء المحددة: مراجعة عقود الخدمة ومتطلبات العملاء لتحديد ما إذا كانت الطلبات الخاصة تطيل مدة الخدمة بشكل غير ضروري. تبسيط هذه المتطلبات يمكن أن يسرع العمليات دون التأثير على رضا العملاء.",
+            "ExecutiveSummary_ServiceDuration-5": "###### 5. تخصيص العمال والموارد: تخصيص العمال والأدوات بشكل صحيح، خاصة في المواقع ذات الازدحام الشديد، يمكن أن يضمن تطبيق الموارد المناسبة على الوظائف المناسبة. يجب النظر في تحسين مهارات العمال أو زيادة عدد الموظفين عند الضرورة لتقليل التأخيرات.",
+            "ExecutiveSummary_ServiceDuration-6": "##### من خلال معالجة هذه العوامل بشكل شمولي—كفاءة سلسلة التوريد، تعقيد الأضرار، إدارة المخزون، متطلبات العملاء، وتخصيص العمال—يمكن للسيد أحمد تحسين كفاءة الخدمة بشكل كبير، تقليل التأخيرات، وزيادة الدخل الإجمالي."            
+        }
+    }
+    st.subheader(ExecutiveSummary_ServiceDuration[selectLang]["ExecutiveSummary_ServiceDurationTitle"])
+    st.markdown(ExecutiveSummary_ServiceDuration[selectLang]["ExecutiveSummary_ServiceDuration-1"])
+    st.markdown(ExecutiveSummary_ServiceDuration[selectLang]["ExecutiveSummary_ServiceDuration-2"])
+    st.markdown(ExecutiveSummary_ServiceDuration[selectLang]["ExecutiveSummary_ServiceDuration-3"])
+    st.markdown(ExecutiveSummary_ServiceDuration[selectLang]["ExecutiveSummary_ServiceDuration-4"])
+    st.markdown(ExecutiveSummary_ServiceDuration[selectLang]["ExecutiveSummary_ServiceDuration-5"])
+    st.markdown(ExecutiveSummary_ServiceDuration[selectLang]["ExecutiveSummary_ServiceDuration-6"])
+        
+    return 'OverViewContent'
+## Cost Prediction
+def CostPrediction():
+    # Train The model
+    ## Step 1: Import Libraries
+    ### Done above
+    ## Step 2: Load the Data
+    ### Load dataset and select the columns needed for the analysis.
+    data = pd.read_excel('maintenance_cleaned_extended.xlsx')
+    ### Select columns relevant to predicting 'cost' and drop any rows with missing values
+    columns_needed = ['service_duration', 'damage type', 'location', 'service_duration_avg_days', 'service_probability', 'cost']
+    data_for_regression = data[columns_needed].dropna()
+    ## Step 3: Define Features (X) and Target (y)¶
+    ### Separate the features you’ll use to predict costs from the target variable.
+    ### Define X (features) and y (target)
+    X = data_for_regression[['service_duration', 'damage type', 'location', 'service_duration_avg_days', 'service_probability']]
+    y = data_for_regression['cost']
+    ## One-Hot Encoding:
+    ### Converts each category into a separate binary (0 or 1) column. This is generally effective for categorical data without order.
+    ### Convert categorical columns to one-hot encoding
+    data_encoded = pd.get_dummies(data_for_regression, columns=['damage type','location'])
+    ## Save the one-hot encoded column names
+    one_hot_columns = data_encoded.columns.tolist()
+    with open('one_hot_columns.pkl', 'wb') as file:
+        pickle.dump(one_hot_columns, file)
+    ### Define X and y with the encoded data
+    X = data_encoded.drop('cost', axis=1)
+    y = data_encoded['cost']
+    ## Step 4: Split the Data
+    ### Split the data into training and testing sets. This allows to evaluate model performance on unseen data.
+    ### Split the data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    ## Step 5: Train and Tune Lasso Regression Model
+    ### Now, instead of a single model, we’ll try different alpha values for Lasso and evaluate each.
+    ### Done in an other file, best alpha values are selected
+    ### Train Lasso model with best alpha value (alpha = 0.1)
+    best_alpha = 0.1
+    final_model = Lasso(alpha=best_alpha)
+    final_model.fit(X_train, y_train)
+    ## Save the model
+    with open('final_model.pkl', 'wb') as file:
+        pickle.dump(final_model, file)
+    ## Step 6: Predict on the test set with final model
+    y_pred = final_model.predict(X_test)
+    ### Calculate final evaluation metrics
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    ### Print the final results if needed
+    #print(f"Final Model Results with Alpha = {best_alpha}")
+    #print(f"Mean Squared Error (MSE): {mse}")
+    #print(f"R² Score: {r2}")
+    #print("Non-zero Coefficients:", sum(final_model.coef_ != 0))
+    #print("Model Coefficients:", final_model.coef_)
+    #print("Intercept:", final_model.intercept_)
+
+    #Predict Cost
+    ## Load the final model
+    with open('final_model.pkl', 'rb') as file:
+        final_model = pickle.load(file)
+
+    ## Define model_columns based on the loaded model
+    ## Align model columns with coefficient length and display feature importance
+    model_columns = (
+        final_model.feature_names_in_ 
+        if hasattr(final_model, 'feature_names_in_') 
+        else one_hot_columns
+    )
+
+    ## Load the one-hot encoded column names
+    with open('one_hot_columns.pkl', 'rb') as file:
+        one_hot_columns = pickle.load(file)
+
+    ## Check feature importance
+    feature_importance = pd.Series(final_model.coef_, index=model_columns)
+    #st.write("Feature Importance:\n", feature_importance.sort_values(ascending=False))
+
+    ## Load the dataset for selection options
+    df = pd.read_excel('maintenance_cleaned_extended.xlsx')
+
+    ## Streamlit UI
+    st.title("Cost Prediction Using Lasso Regression")
+    service_duration_dict = {
+        'اصلاح بودي':5,
+        'اصلاح زجاج':1,
+        'اصلاح فرش':2,
+        'اصلاح كهرباء':2,
+        'اصلاح كوشوك':1,
+        'اصلاح مكانيك':1,
+        'غيار زيت':1
+        }
+    Kms_dict = {
+        range(0,50000)      : 0.1,
+        range(50000,100000) : 0.3,
+        range(100000,150000): 0.5,
+        range(150000,500000): 0.7,
+        range(500000,999999): 0.9
+        }
+
+    ## Function to get the value from the dictionary based on the range
+    def get_kms_value(kms):
+        for kms_range, value in Kms_dict.items():
+            if kms in kms_range:
+                return value
+        return None
+
+    df['service_duration_avg_days'] = df['service_duration'].replace(service_duration_dict)
+    ## User inputs
+    service_duration = st.number_input("Enter Service Duration (in days):", min_value=0)
+    KMs_In           = st.number_input("Enter current car kilometers:", min_value=0)
+    ## Select boxes for categorical inputs
+    damage_type = st.selectbox("Select Damage Type", df['damage type'].unique())
+    location = st.selectbox("Select Location", df['location'].unique())
+
+    service_duration_avg_days = service_duration_dict.get(damage_type.strip())
+    service_probability = get_kms_value(KMs_In)
+
+    st.write('Average Service Duration in Days:', service_duration_avg_days)
+    st.write('Service Probability:', service_probability)
+
+    ## Prediction on button click
+    if st.button("Predict"):
+        ## Create a DataFrame for the input features with `one_hot_columns`
+        input_data = pd.DataFrame(columns=one_hot_columns)
+        input_data.loc[0] = 0  # Initialize all values to zero
+
+        ## Fill the DataFrame with the user inputs
+        input_data.at[0, 'service_duration'] = service_duration
+        input_data.at[0, 'KMs_IN'] = KMs_In
+        input_data.at[0, 'service_duration_avg_days'] = service_duration_avg_days
+        input_data.at[0, 'service_probability'] = service_probability
+
+        ## One-hot encode categorical inputs
+        location_column = f'location_{location}'
+        damage_type_column = f'damage_type_{damage_type}'
+
+        if location_column in one_hot_columns:
+            input_data.at[0, location_column] = 1
+        if damage_type_column in one_hot_columns:
+            input_data.at[0, damage_type_column] = 1
+
+        ## Align `input_data` columns with `model_columns` for prediction
+        if model_columns is not None:
+            input_data = input_data.reindex(columns=model_columns, fill_value=0)
+
+        ## Make prediction
+        prediction = final_model.predict(input_data)
+
+        ## Display results
+        st.write(f"Predicted Cost: ${prediction[0]:.2f}")
+
+        ## Display additional insights
+        st.markdown("### Insights:")
+        st.write(f"- **Service Duration:** {service_duration} day")
+        st.write(f"- **KMs In:** {KMs_In} km")
+        st.write(f"- **Location:** {location}")
+        st.write(f"- **Damage Type:** {damage_type}")
+        st.write(f"- **service_duration_avg_days:** {service_duration_avg_days}")
+        st.write(f"- **service_probability:** {service_probability}")
+
+        ## Optional summary interpretation
+        st.write(f"This prediction suggests that given the current conditions, the service cost would be around **${prediction[0]:.2f}**.")
+
+    return('CostPrediction')
 ## Corporate Client Profitability Insights
 ### Corporate Client Profitability
 def Corporate_Client_Profitability():
@@ -971,10 +1298,21 @@ class SwitchMCase:
     ################################################################################################## Overview
     def case_Overview(self):
         st.header('Overview')
+        OverViewContent()
         return 'Overview'
     def case_نظرة_شاملة(self):
         st.header('نظرة شاملة')
+        OverViewContent()
         return 'انتهى عرض نظرة شاملة'
+
+    ################################################################################################## Cost Prediction
+    def case_Cost_Prediction(self):
+        CostPrediction()
+        return 'Overview'
+    def case_توقع_التكلفة(self):
+        st.header('توقع_التكلفة')
+        CostPrediction()
+        return 'انتهى عرض توقع التكلفة'
 
     ################################################################################################## DataSet Exploration Original, Before processing, After processing
     def case_DataSet(self):
