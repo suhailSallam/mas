@@ -3307,4 +3307,10 @@ M_result = M_switcher.M_switch(selectMB)
 st.write('MAIN: ',M_result)
 
 st.sidebar.write('')
-st.sidebar.markdown('Made with :heart: by: [Suhail Sallam](https://www.youtube.com/@suhailsallam)')
+MadeBy = {
+        "English": {
+            "who": "Made with :heart: by: [Suhail Sallam](https://www.youtube.com/@suhailsallam)",
+        "العربية": {
+            "who": "تم تصميمه بواسطة :heart: : [سهيل سلّام](https://www.youtube.com/@suhailsallam)",
+    }
+st.markdown(’MadeBy[selectLang]["who"])
