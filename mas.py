@@ -3310,7 +3310,9 @@ st.sidebar.write('')
 MadeBy = {
         "English": {
             "who": "Made with :heart: by: [Suhail Sallam](https://www.youtube.com/@suhailsallam)",
+            },
         "العربية": {
             "who": "تم تصميمه بواسطة :heart: : [سهيل سلّام](https://www.youtube.com/@suhailsallam)",
-    }
+            },
+        }
 st.markdown(MadeBy[selectLang]["who"])
