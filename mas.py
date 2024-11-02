@@ -3315,4 +3315,4 @@ MadeBy = {
             "who": "تم تصميمه بواسطة :heart: : [سهيل سلّام](https://www.youtube.com/@suhailsallam)",
             },
         }
-st.markdown(MadeBy[selectLang]["who"])
+st.sidebar.markdown(MadeBy[selectLang]["who"])
